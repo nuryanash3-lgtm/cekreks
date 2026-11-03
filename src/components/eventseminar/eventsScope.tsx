@@ -1,5 +1,5 @@
-import { Camera } from "lucide-react";
 import { EVENTS_SERVICES_SCOPE } from "@/constants/eventsData";
+import Image from "next/image";
 
 export default function EventsScope() {
   return (
@@ -19,13 +19,14 @@ export default function EventsScope() {
             key={idx}
             className="rounded-2xl bg-[#140b2b]/90 border border-white/10 overflow-hidden hover:border-cyan-400/50 transition-all duration-300 flex flex-col"
           >
-            <div className="relative h-44 w-full bg-[#1c0f3d] flex items-center justify-center">
-              <div className="absolute top-3 left-3">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 border border-cyan-400/30 text-cyan-300">
+            {/* Ubah h-44 menjadi h-64 (atau h-56 jika ingin tidak terlalu tinggi) */}
+            <div className="relative h-64 w-full bg-[#1c0f3d] flex items-center justify-center">
+              <div className="absolute top-3 left-3 z-10">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 border border-cyan-400/30 text-cyan-300 backdrop-blur-sm">
                   {service.tag}
                 </span>
               </div>
-              <Camera className="w-8 h-8 opacity-40 text-cyan-400" />
+              <Image src={service.image} alt={service.title} fill className="object-cover" />
             </div>
 
             <div className="p-5 flex-1 flex flex-col justify-between">

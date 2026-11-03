@@ -99,7 +99,7 @@ export default function EventsAlbum() {
     return (
         <section className="py-20 border-t border-white/10 overflow-hidden">
             {/* Header Section */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-[100rem] mx-auto px-5 mb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-[100rem] mx-auto px-5 mb-2">
                 <div className="text-center sm:text-left">
                     <div className="inline-flex items-center gap-1.5 py-1 rounded-full text-xs font-semibold uppercase text-cyan-300">
                         Album
@@ -144,11 +144,10 @@ export default function EventsAlbum() {
                             key={item.id}
                             onClick={() => setCurrentIndex(index)}
                             style={style}
-                            className={`absolute top-1/2 -translate-y-1/2 w-[210px] sm:w-[250px] md:w-[270px] aspect-[9/16] rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer transition-all duration-700 ease-out select-none ${
-                                isCenter
-                                    ? "border-2 border-cyan-400 shadow-[0_0_40px_rgba(34,211,238,0.4)]"
-                                    : "border border-white/10 shadow-2xl hover:opacity-90"
-                            }`}
+                            className={`absolute top-1/2 -translate-y-1/2 w-[240px] sm:w-[280px] md:w-[320px] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer transition-all duration-700 ease-out select-none ${isCenter
+                                ? "border-2 border-cyan-400 shadow-[0_0_40px_rgba(34,211,238,0.4)]"
+                                : "border border-white/10 shadow-2xl hover:opacity-90"
+                                }`}
                         >
                             <Image
                                 src={item.image}
@@ -176,11 +175,10 @@ export default function EventsAlbum() {
                         type="button"
                         onClick={() => setCurrentIndex(dotIdx)}
                         aria-label={`Pindah ke foto ${dotIdx + 1}`}
-                        className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                            dotIdx === currentIndex
-                                ? "w-7 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]"
-                                : "w-2 bg-white/20 hover:bg-white/40"
-                        }`}
+                        className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${dotIdx === currentIndex
+                            ? "w-7 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]"
+                            : "w-2 bg-white/20 hover:bg-white/40"
+                            }`}
                     />
                 ))}
             </div>
