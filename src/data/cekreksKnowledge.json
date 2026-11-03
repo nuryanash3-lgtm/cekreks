@@ -1,0 +1,292 @@
+{
+  "company_info": {
+    "name": "Cekreks.id (Cekrek'S Studio)",
+    "established": 2015,
+    "tagline": "Abadikan Momen Berharga Anda Bersama Cekreks.id",
+    "description": "Penyedia layanan fotografi, videografi, dan AI photobooth interaktif profesional di Kota Cimahi & Bandung Raya.",
+    "about": "Berdiri sejak tahun 2015, Cekreks.id telah melayani ratusan momen istimewa—mulai dari wisuda, pernikahan, event komunitas, hingga dokumentasi instansi dan perusahaan. Memadukan seni fotografi klasik dan inovasi teknologi digital.",
+    "contact": {
+      "whatsapp": "+62 858-0110-5140",
+      "email": "cekreksid@gmail.com",
+      "website": "www.cekreks.id"
+    },
+    "studio_address": {
+      "street": "Jl. Kebon Manggu No. 43, Komplek Pemda, RT 05 / RW 21",
+      "subdistrict": "Kelurahan Padasuka, Kecamatan Cimahi Tengah",
+      "city": "Kota Cimahi",
+      "province": "Jawa Barat",
+      "postal_code": "40526",
+      "country": "Indonesia"
+    },
+    "operational_hours": "Senin – Minggu: 08.00 – 20.00 WIB (Disarankan reservasi H-1 via WhatsApp)"
+  },
+  "advantages": [
+    {
+      "title": "Visual High-Quality",
+      "description": "Didukung peralatan kamera & pencahayaan profesional serta tim kreatif berpengalaman."
+    },
+    {
+      "title": "Teknologi AI Terbaru",
+      "description": "Hadir dengan inovasi AI Photobooth interaktif untuk memeriahkan berbagai jenis event Anda."
+    },
+    {
+      "title": "Harga Transparan & Terjangkau",
+      "description": "Pilihan paket fleksibel yang dapat disesuaikan untuk kebutuhan personal, acara keluarga, hingga korporat."
+    },
+    {
+      "title": "Lokasi Studio Nyaman",
+      "description": "Studio foto representative, bersih, dan berlokasi strategis di pusat Kota Cimahi."
+    }
+  ],
+  "services": {
+    "wedding_packages": {
+      "basic_price_list": [
+        {
+          "name": "Basic Akad Nikah",
+          "price": "1.200K",
+          "details": [
+            "500K File Only (label)",
+            "1 Album 35 x 35 cm 10 Sheets",
+            "1 Pembesaran 10 R + Laminasi + Frame",
+            "Satu Crew Fotografer",
+            "Durasi kerja selama 4 jam",
+            "Softcopy dikirim dalam Drive"
+          ]
+        },
+        {
+          "name": "Wedding Basic 1",
+          "price": "2.000K",
+          "details": [
+            "1 Album 35 x 35 cm 15 Sheets",
+            "1 Pembesaran 12R + Laminasi + Frame",
+            "Dua Crew Fotografer",
+            "Durasi Kerja Selama 6 Jam",
+            "Softcopy dikirim dalam Drive"
+          ]
+        },
+        {
+          "name": "Wedding Basic 2",
+          "price": "3.500K",
+          "details": [
+            "1 Album Magazine Kolase Digital",
+            "1 Pembesaran 16R + Laminasi + Frame",
+            "Dua Crew Fotografer",
+            "Softcopy dikirim dalam Drive",
+            "Video Highlight 3 - 5 Menit"
+          ]
+        }
+      ],
+      "premium_price_list": [
+        {
+          "name": "Silver Package",
+          "price": "4.500K",
+          "details": [
+            "1 Album Magnetik + 1 Album Magazine",
+            "1 buah pembesaran 16R",
+            "Tiga Fotografer",
+            "Softcopy dikirim dalam Drive",
+            "Highlight + Full Video Editing"
+          ]
+        },
+        {
+          "name": "Gold Package",
+          "price": "6.500K",
+          "details": [
+            "2 Album Magazine Kulit + Eksklusif Box",
+            "1 buah pembesaran 20R",
+            "Tiga Fotografer",
+            "Softcopy dikirim dalam Drive",
+            "Highlight + Full Video Editing"
+          ]
+        },
+        {
+          "name": "Platinum Package",
+          "price": "8.000K",
+          "details": [
+            "2 Album Magazine Kulit + Eksklusif Box",
+            "2 buah pembesaran 20R",
+            "4 Fotografer + Tambahan Kamera Drone",
+            "Softcopy dikirim dalam Drive",
+            "Highlight + Full Video Editing"
+          ]
+        }
+      ]
+    },
+    "photoshoot_studio_packages": [
+      {
+        "name": "Paket Personal / Portrait",
+        "price": "300K",
+        "details": [
+          "30 Menit Sesi Foto Studio",
+          "1 Kostum / Outfit",
+          "Unlimited Photoshoot",
+          "3 Master Edit High-Resolution",
+          "1 Cetak Foto 12R + Bingkai Eksklusif",
+          "All Softcopy (Via Google Drive / QR Code)"
+        ]
+      },
+      {
+        "name": "Paket Graduation / Wisuda",
+        "price": "450K",
+        "details": [
+          "45 Menit Sesi Foto Studio (Maks. 5 Orang)",
+          "1 Kostum / Outfit",
+          "Unlimited Photoshoot",
+          "5 Master Edit High-Resolution",
+          "1 Cetak Foto 16R + Bingkai Eksklusif",
+          "All Softcopy File (Via Google Drive / QR Code)"
+        ]
+      },
+      {
+        "name": "Paket Family / Group",
+        "price": "600K",
+        "details": [
+          "60 Menit Sesi Foto Studio (Maks. 10 Orang)",
+          "1 Kostum / Outfit",
+          "Unlimited Photoshoot",
+          "10 Master Edit High-Resolution",
+          "1 Cetak Foto 20R + Bingkai Minimalis",
+          "All Softcopy File (Via Google Drive / QR Code)"
+        ]
+      }
+    ],
+    "graduation_outdoor_packages": [
+      {
+        "name": "Paket Outdoor 2 Jam",
+        "price": "750K",
+        "details": [
+          "1 Kostum / Outfit",
+          "Unlimited Photoshoot",
+          "3 Master Edit High-Resolution",
+          "1 Cetak Foto 12R + Bingkai Eksklusif",
+          "All Softcopy (Via Google Drive / QR Code)"
+        ]
+      },
+      {
+        "name": "Paket Outdoor 3 Jam",
+        "price": "1.000K",
+        "details": [
+          "1 Kostum / Outfit",
+          "Unlimited Photoshoot",
+          "5 Master Edit High-Resolution",
+          "1 Cetak Foto 16R + Bingkai Eksklusif",
+          "All Softcopy File (Via Google Drive / QR Code)"
+        ]
+      },
+      {
+        "name": "Paket Outdoor 5-6 Jam",
+        "price": "1.500K",
+        "details": [
+          "2 Kostum / Outfit",
+          "Unlimited Photoshoot",
+          "10 Master Edit High-Resolution",
+          "1 Cetak Foto 20R + Bingkai Minimalis",
+          "Video highlight IG Durasi 1 menit",
+          "All Softcopy File (Via Google Drive / QR Code)"
+        ]
+      }
+    ],
+    "event_documentation_packages": [
+      {
+        "name": "Event & Seminar Coverage (Half-Day)",
+        "price": "750K",
+        "details": [
+          "1 Photographer Profesional",
+          "Unlimited Shots",
+          "All Files Edited Color Grading",
+          "Online Storage / Drive Transfer",
+          "1 Album Magnetik"
+        ]
+      },
+      {
+        "name": "Event & Seminar Coverage (Full-Day)",
+        "price": "1.000K",
+        "details": [
+          "1 Photographer Profesional",
+          "Unlimited Shots",
+          "All Files Edited Color Grading",
+          "Online Storage / Drive Transfer",
+          "1 Album Magnetik"
+        ]
+      },
+      {
+        "name": "Foto & Video Package (1 Day)",
+        "price": "2.500K",
+        "details": [
+          "Fotografer & Videografer Profesional",
+          "Album Magnetik / Kolase Eksklusif",
+          "Video Cinematic Highlight durasi 45 Menit",
+          "All Master Softcopy File (Via Google Drive/QR Code)"
+        ]
+      }
+    ],
+    "photobooth_packages": [
+      {
+        "name": "Paket Photobooth Silver (2 Jam)",
+        "price": "1.250K",
+        "details": [
+          "Durasi Layanan 2 Jam Print High-Speed",
+          "Touchscreen Display & Kamera Profesional",
+          "Template Layout Custom (Nama Event)",
+          "Tersedia 50 Voucher Photobooth",
+          "1 Crew / Operator Photobooth"
+        ]
+      },
+      {
+        "name": "Paket Photobooth Gold (3 Jam)",
+        "price": "2.000K",
+        "details": [
+          "Durasi Layanan 3 Jam Print High-Speed",
+          "Tersedia 100 Voucher Photobooth",
+          "Integrasi Fitur AI (AI Style / Digital Filter)",
+          "Custom Backdrop / Frame Roll-up",
+          "Live QR Code Download Instan",
+          "2 Crew Operator & Technician"
+        ]
+      },
+      {
+        "name": "Paket Photobooth Gold (4 Jam)",
+        "price": "3.200K",
+        "details": [
+          "Layanan 4 Jam Print High-Speed",
+          "Tersedia 200 Voucher Photobooth",
+          "Integrasi Fitur AI (AI Style / Digital Filter)",
+          "Custom Backdrop / Frame Roll-up",
+          "Live QR Code Download Instan",
+          "3 Crew Operator & Technician"
+        ]
+      }
+    ]
+  },
+  "photobooth_types": {
+    "konvensional": {
+      "title": "Photobooth Konvensional (Classic & Fun)",
+      "target": "Wedding, birthday party, gathering, dan event yang menginginkan hasil foto instan, natural, serta cetakan fisik klasik.",
+      "features": [
+        "Kamera Professional & Studio Lighting",
+        "Custom Template Frame (desain disesuaikan dengan tema acara/branding)",
+        "Cetak Instan Premium dengan kertas foto tahan lama",
+        "Fun Props & Aksesoris (kacamata lucu, papan tulisan, bando, dll)",
+        "Digital Copy via Scan QR Code",
+        "Operator & Kru Standby ramah"
+      ]
+    },
+    "ai_photobooth": {
+      "title": "Photobooth AI (Interactive & Generative Experience)",
+      "target": "Corporate event, exhibition, launching produk, wedding modern, atau acara yang ingin memberikan kesan 'WOW'.",
+      "features": [
+        "Generative AI Style Transformation (3D Cartoon, Cyberpunk, Royal Kingdom, Retro 80-an, Superhero, Anime, dll)",
+        "Proses Cepat & Otomatis secara real-time",
+        "Custom AI Prompt & Branded Frame",
+        "Instant Digital Share & Cetak Instan (shareable ke IG/TikTok)",
+        "Layar Monitor Live Preview (Visual Magnet)",
+        "Teknisi & Crew Pendamping"
+      ]
+    }
+  },
+  "notes": [
+    "Harga paket outdoor belum termasuk Tiket Masuk Lokasi Outdoor dan Akomodasi Crew Studio.",
+    "Harga photobooth sudah termasuk cetak di kertas photopaper + paperframe, atau tersedia pilihan Paket AI Photobooth tanpa dicetak.",
+    "Harga cetak tambahan AI Photobooth: 5K / Sesi dan 15K (Photoblok)."
+  ]
+}
