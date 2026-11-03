@@ -43,14 +43,14 @@ export const EVENTS_SERVICES_SCOPE: EventScopeItem[] = [
 
 export const EVENTS_PACKAGES: EventPackage[] = [
   {
-    categoryName: "EVENT & SEMINAR COVERAGE",
+    categoryName: "EVENT & SEMINAR",
     tagline: "Khusus Dokumentasi Fotografi Profesional",
     popular: false,
     desc: "Layanan murni fotografi untuk meliput jalannya event, seminar, workshop, maupun kegiatan instansi dengan hasil jernih dan tajam.",
     tiers: [
       {
         id: "event-half",
-        name: "Half-Day",
+        name: "HALFDAY",
         price: "750K",
         features: [
           "1 Fotografer Profesional",
@@ -62,7 +62,7 @@ export const EVENTS_PACKAGES: EventPackage[] = [
       },
       {
         id: "event-fullday",
-        name: "Full-Day",
+        name: "FULLDAY",
         price: "1.000K",
         features: [
           "1 Fotografer Profesional",
@@ -75,7 +75,7 @@ export const EVENTS_PACKAGES: EventPackage[] = [
     ],
   },
   {
-    categoryName: "FOTO & VIDEO PACKAGE",
+    categoryName: "PAKET FOTO & VIDEO",
     tagline: "Solusi lengkap dokumentasi visual sinematik",
     popular: true,
     desc: "Paket komprehensif memadukan keahlian fotografer dan videografer profesional untuk mengabadikan keseluruhan acara Anda secara megah.",
