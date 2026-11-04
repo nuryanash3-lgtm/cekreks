@@ -43,8 +43,8 @@ export const PHOTOBOOTH_SERVICES_SCOPE: PhotoboothScopeItem[] = [
 
 export const PHOTOBOOTH_PACKAGES: PhotoboothPackage[] = [
   {
-    categoryName: "PHOTOBOOTH PACKAGES",
-    tagline: "Pilihan Durasi & Fitur AI Booth",
+    categoryName: "PHOTOBOOTH",
+    tagline: "Paket Photobooth",
     popular: true,
     desc: "Layanan photobooth fleksibel (Konvensional atau AI Booth) lengkap dengan cetak high-speed, voucher, dan crew profesional.",
     tiers: [

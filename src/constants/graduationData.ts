@@ -29,13 +29,13 @@ export const GRADUATION_SERVICES_SCOPE: GraduationScopeItem[] = [
   },
   {
     title: "Momen Bersama",
-    tag: "Family Portrait",
+    tag: "Moments Together",
     desc: "Merekam kebanggaan dan pelukan hangat orang tua serta keluarga tercinta yang telah menemani perjuangan studi hingga wisuda.",
     image: "/images/graduationtestimoni/pesertagraduation.jpg",
   },
   {
     title: "Pembuatan Buku Tahunan",
-    tag: "Besties & Squad",
+    tag: "Yearbook",
     desc: "Satu buku, ribuan cerita. Abadikan momen epik, kekompakan squad, dan vibes terbaik masa sekolahmu dalam konsep visual yang super keren.",
     image: "/images/graduationtestimoni/yearbook.jpg",
   },

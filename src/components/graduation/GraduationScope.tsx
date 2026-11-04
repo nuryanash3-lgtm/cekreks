@@ -19,8 +19,8 @@ export default function GraduationScope() {
             key={idx}
             className="rounded-2xl bg-[#140b2b]/90 border border-white/10 overflow-hidden hover:border-cyan-400/50 transition-all duration-300 flex flex-col"
           >
-            <div className="relative h-44 w-full bg-[#1c0f3d] flex items-center justify-center">
-              <div className="absolute top-3 left-3">
+            <div className="relative h-64 w-full bg-[#1c0f3d] flex items-center justify-center">
+              <div className="absolute top-3 left-3 z-10">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 border border-cyan-400/30 text-cyan-300">
                   {service.tag}
                 </span>
