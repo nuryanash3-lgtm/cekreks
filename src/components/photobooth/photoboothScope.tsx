@@ -25,7 +25,7 @@ export default function PhotoboothScope() {
                   {service.tag}
                 </span>
               </div>
-              <Image src={service.image} alt={service.title} fill className="object-cover" />
+              <Image src={service.image} alt={service.title} fill className="object-cover object-[center_40%]" />
             </div>
 
             <div className="p-5 flex-1 flex flex-col justify-between">
