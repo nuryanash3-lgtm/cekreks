@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
 import { NAV_ITEMS } from "@/constants/navigation";
+import LoginModal from "../modal/LoginModal";
 
 const LANGUAGES = [
     { code: "id", label: "Bahasa (ID)" },
@@ -29,6 +30,8 @@ export default function Navbar() {
     const langRef = useRef<HTMLDivElement>(null);
 
     const [mounted, setMounted] = useState(false);
+
+    const [isLoginOpen, setIsLoginOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -139,13 +142,13 @@ export default function Navbar() {
                     </div>
 
                     {/* Tombol Login */}
-                    <Link
-                        href="/login"
+                    <button
+                        onClick={() => setIsLoginOpen(true)}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1c113b]/80 border border-purple-800/40 text-xs font-medium text-slate-200 hover:bg-purple-900/40 hover:border-cyan-400/50 transition"
                     >
                         <User className="w-3.5 h-3.5" />
                         <span>Login</span>
-                    </Link>
+                    </button>
                 </div>
 
                 {/* TOMBOL MOBILE BURGER */}
@@ -249,19 +252,22 @@ export default function Navbar() {
 
                             {/* Tombol Login Bawah */}
                             <div className="pt-6 border-t border-purple-900/30">
-                                <Link
-                                    href="/login"
-                                    onClick={() => setIsMobileMenuOpen(false)}
+                                <button
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        setIsLoginOpen(true);
+                                    }}
                                     className="w-full py-3 rounded-full bg-[#1b0e38] border border-purple-700/60 text-sm font-semibold text-white flex items-center justify-center gap-2 hover:bg-purple-900/50 transition shadow-lg shadow-purple-950/50 active:scale-[0.98]"
                                 >
                                     <User className="w-4 h-4 text-cyan-400" />
                                     <span>Login</span>
-                                </Link>
+                                </button>
                             </div>
                         </div>
                     </div>,
                     document.body
                 )}
+                <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
         </header>
     );
 }
