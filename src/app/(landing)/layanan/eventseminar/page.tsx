@@ -1,9 +1,9 @@
 "use client";
 
-import EventsHero from "@/components/eventseminar/eventsHero";
-import EventsScope from "@/components/eventseminar/eventsScope";
-import EventsAlbum from "@/components/eventseminar/eventsAlbum";
-import EventsPricing from "@/components/eventseminar/eventsPricing";
+import EventsHero from "@/components/landing/eventseminar/eventsHero";
+import EventsScope from "@/components/landing/eventseminar/eventsScope";
+import EventsAlbum from "@/components/landing/eventseminar/eventsAlbum";
+import EventsPricing from "@/components/landing/eventseminar/eventsPricing";
 
 export default function EventsDetailPage() {
   return (

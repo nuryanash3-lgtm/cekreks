@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import PhotoboothHero from "@/components/photobooth/photoboothHero";
-import PhotoboothScope from "@/components/photobooth/photoboothScope";
-import PhotoboothAlbum from "@/components/photobooth/photoboothAlbum";
-import PhotoboothPricing from "@/components/photobooth/photoboothPricing";
+import PhotoboothHero from "@/components/landing/photobooth/photoboothHero";
+import PhotoboothScope from "@/components/landing/photobooth/photoboothScope";
+import PhotoboothAlbum from "@/components/landing/photobooth/photoboothAlbum";
+import PhotoboothPricing from "@/components/landing/photobooth/photoboothPricing";
 import { Music, VolumeX } from "lucide-react";
 
 export default function PhotoboothDetailPage() {

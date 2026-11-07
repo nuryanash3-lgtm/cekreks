@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import WeddingHero from "@/components/wedding/WeddingHero";
-import WeddingScope from "@/components/wedding/WeddingScope";
-import WeddingPricing from "@/components/wedding/WeddingPricing";
-import WeddingGallery from "@/components/wedding/WeddingGallery";
+import WeddingHero from "@/components/landing/wedding/WeddingHero";
+import WeddingScope from "@/components/landing/wedding/WeddingScope";
+import WeddingPricing from "@/components/landing/wedding/WeddingPricing";
+import WeddingGallery from "@/components/landing/wedding/WeddingGallery";
 import { Music, VolumeX } from "lucide-react";
 
 export default function WeddingDetailPage() {

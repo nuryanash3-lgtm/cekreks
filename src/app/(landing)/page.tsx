@@ -1,12 +1,12 @@
-import Navbar from "@/components/layout/Navbar";
-import HeroSlider from "@/components/home/HeroSlider";
-import ExperienceHero from "@/components/home/ExperienceHero";
-import AiPreviewContent from "@/components/home/AiPreviewContent";
-import ServiceSection from "@/components/home/ServicesSection";
-import PricingSection from "@/components/home/PricingSection";
+import Navbar from "@/components/landing/layout/Navbar";
+import HeroSlider from "@/components/landing/home/HeroSlider";
+import ExperienceHero from "@/components/landing/home/ExperienceHero";
+import AiPreviewContent from "@/components/landing/home/AiPreviewContent";
+import ServiceSection from "@/components/landing/home/ServicesSection";
+import PricingSection from "@/components/landing/home/PricingSection";
 import { SlideItem } from "@/types";
-import Footer from "@/components/layout/Footer";
-import ContactSection from "@/components/home/ContactSection";
+import Footer from "@/components/landing/layout/Footer";
+import ContactSection from "@/components/landing/home/ContactSection";
 
 const HERO_SLIDES: SlideItem[] = [
   {
