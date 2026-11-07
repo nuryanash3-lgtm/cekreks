@@ -120,19 +120,33 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <div className="my-6 border-t border-white/5" />
 
         {/* Kotak Connect to Event (6 Digit Code) */}
-        <div className="flex items-center justify-between p-3 bg-[#13111c] border border-white/5 rounded-xl">
-          <button className="flex items-center font-bold tracking-wider text-white p-2 uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-lg shadow-[0_0_20px_rgba(217,70,239,0.4)] hover:shadow-[0_0_25px_rgba(217,70,239,0.7)] hover:scale-[1.01] active:scale-[0.99] transition duration-200 text-sm">
-            <KeyRound className="w-4 h-4 mr-2" />
-            <span className="text-xs font-medium text-gray-100">Connect to Event</span>
-          </button>
-          <input
-            type="text"
-            maxLength={6}
-            value={eventCode}
-            onChange={(e) => setEventCode(e.target.value)}
-            placeholder="6 DIGIT CODE"
-            className="w-32 px-3 py-1.5 bg-[#0d0b14] border border-white/10 rounded-lg text-center text-xs tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition uppercase"
-          />
+        <div className="p-3 bg-[#13111c] border border-white/10 rounded-2xl space-y-2">
+          <div className="flex items-center space-x-2 text-xs text-gray-400 mb-1">
+            <KeyRound className="w-3.5 h-3.5 text-pink-400" />
+            <span>Connect to Event</span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              maxLength={6}
+              value={eventCode}
+              onChange={(e) => setEventCode(e.target.value)}
+              placeholder="6 DIGIT CODE"
+              className="flex-1 px-4 py-3 bg-[#0d0b14] border border-white/10 rounded-xl text-center text-xs tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition uppercase"
+            />
+
+            <button
+              type="button"
+              onClick={() => {
+                // Logika connect event Anda di sini
+                console.log({ eventCode });
+              }}
+              className="px-5 py-3 font-bold tracking-wider text-white uppercase bg-gradient-to-r from-[#ff4d6d]/80 via-[#d946ef]/80 to-[#8b5cf6]/80 border border-purple-500/30 rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.2)] hover:shadow-[0_0_20px_rgba(217,70,239,0.4)] transition duration-200 text-xs whitespace-nowrap"
+            >
+              Connect
+            </button>
+          </div>
         </div>
       </div>
     </div>
