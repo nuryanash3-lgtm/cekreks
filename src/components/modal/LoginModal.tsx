@@ -43,7 +43,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   return (
     <div
       onClick={onClose}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
+      className={`fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
     >
       {/* Container Modal dengan Animasi Pop-up (Scale) */}
@@ -110,7 +110,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           {/* Tombol Sign In dengan Neon Glow Magenta */}
           <button
             type="submit"
-            className="w-full py-3.5 mt-2 font-bold tracking-wider text-white uppercase bg-gradient-to-r from-[#b000ff] to-[#d900ff] rounded-xl shadow-[0_0_20px_rgba(192,38,211,0.5)] hover:shadow-[0_0_25px_rgba(192,38,211,0.8)] hover:scale-[1.01] active:scale-[0.99] transition duration-200 text-sm"
+            className="w-full py-3.5 mt-2 font-bold tracking-wider text-white uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] hover:shadow-[0_0_25px_rgba(217,70,239,0.7)] hover:scale-[1.01] active:scale-[0.99] transition duration-200 text-sm"
           >
             Sign In
           </button>
@@ -121,13 +121,10 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         {/* Kotak Connect to Event (6 Digit Code) */}
         <div className="flex items-center justify-between p-3 bg-[#13111c] border border-white/5 rounded-xl">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 text-purple-400 bg-purple-500/10 rounded-lg">
-              <KeyRound className="w-4 h-4" />
-            </div>
-            <span className="text-xs font-medium text-gray-300">Connect to Event</span>
-          </div>
-
+          <button className="flex items-center font-bold tracking-wider text-white p-2 uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-lg shadow-[0_0_20px_rgba(217,70,239,0.4)] hover:shadow-[0_0_25px_rgba(217,70,239,0.7)] hover:scale-[1.01] active:scale-[0.99] transition duration-200 text-sm">
+            <KeyRound className="w-4 h-4 mr-2" />
+            <span className="text-xs font-medium text-gray-100">Connect to Event</span>
+          </button>
           <input
             type="text"
             maxLength={6}
@@ -137,7 +134,6 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             className="w-32 px-3 py-1.5 bg-[#0d0b14] border border-white/10 rounded-lg text-center text-xs tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition uppercase"
           />
         </div>
-
       </div>
     </div>
   );
