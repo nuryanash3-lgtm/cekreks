@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cekreks.id - Solusi Dokumentasi Terintegrasi",
-  description: "Layanan dokumentasi foto & video pernikahan, graduation, dan event profesional.",
+  title: "Cekreks.id - Layanan Fotografi Profesional",
+  description: "Layanan dokumentasi foto & video pernikahan, graduation, event dan photobooth.",
 };
 
 export default function RootLayout({

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, KeyRound, Sparkles, Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [password, setPassword] = useState('');
   const [eventCode, setEventCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // State untuk mengontrol animasi tampil/tutup
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -40,20 +41,18 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   return (
-    <div 
+    <div
       onClick={onClose}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${
-        isAnimating ? 'opacity-100' : 'opacity-0'
-      }`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
+        }`}
     >
       {/* Container Modal dengan Animasi Pop-up (Scale) */}
-      <div 
+      <div
         onClick={(e) => e.stopPropagation()} // Mencegah modal tertutup saat area dalam diklik
-        className={`relative w-full max-w-md p-8 bg-[#0d0b14] border border-purple-900/40 rounded-3xl shadow-[0_0_35px_rgba(168,85,247,0.15)] text-white transition-all duration-300 transform ${
-          isAnimating ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
-        }`}
+        className={`relative w-full max-w-md p-8 bg-[#0d0b14] border border-purple-900/40 rounded-3xl shadow-[0_0_35px_rgba(168,85,247,0.15)] text-white transition-all duration-300 transform ${isAnimating ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
+          }`}
       >
-        
+
         {/* Tombol Close (X) */}
         <button
           onClick={onClose}
@@ -64,9 +63,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         {/* Header Logo & Title */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 mb-3 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
+          <Image src="/images/logo/cekreks2.png" alt="Logo Cekreks" width={100} height={100} className="my-3" />
           <h2 className="text-2xl font-bold tracking-wider">LOGIN</h2>
           <span className="text-xs tracking-widest text-gray-400 uppercase">AI Photobooth App</span>
         </div>
@@ -81,7 +78,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="vendor@example.com"
+              placeholder="user@example.com"
               required
               className="w-full px-4 py-3 bg-[#13111c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition text-sm"
             />
@@ -130,7 +127,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </div>
             <span className="text-xs font-medium text-gray-300">Connect to Event</span>
           </div>
-          
+
           <input
             type="text"
             maxLength={6}
