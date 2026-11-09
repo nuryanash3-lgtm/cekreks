@@ -15,14 +15,16 @@
       "title": "ARTBOOTH",
       "date": "10/17/2026",
       "description": "Semua bisa mengekspresikan disini",
-      "redirectUrl": "/event/4S03UZ"
+      "redirectUrl": "/event/4S03UZ",
+      "isPublic": true
     },
     {
       "code": "K4X41Z",
       "title": "Wedding Party",
       "date": "11/7/2026",
       "description": "Wedding At Baros",
-      "redirectUrl": "/event/K4X41Z"
+      "redirectUrl": "/event/K4X41Z",
+      "isPublic": true
     }
   ]
 }
