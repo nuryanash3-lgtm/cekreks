@@ -1,0 +1,30 @@
+{
+  "admin": {
+    "email": "admin@cekreks.id",
+    "password": "password123",
+    "redirectUrl": "/admin"
+  },
+  "user": {
+    "email": "user@cekreks.id",
+    "password": "password123",
+    "redirectUrl": "/event"
+  },
+  "events": [
+    {
+      "code": "4S03UZ",
+      "title": "ARTBOOTH",
+      "date": "10/17/2026",
+      "description": "Semua bisa mengekspresikan disini",
+      "redirectUrl": "/event/4S03UZ",
+      "isPublic": true
+    },
+    {
+      "code": "K4X41Z",
+      "title": "Wedding Party",
+      "date": "11/7/2026",
+      "description": "Wedding At Baros",
+      "redirectUrl": "/event/K4X41Z",
+      "isPublic": true
+    }
+  ]
+}

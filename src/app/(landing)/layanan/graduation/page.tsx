@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import GraduationHero from "@/components/graduation/GraduationHero";
-import GraduationScope from "@/components/graduation/GraduationScope";
-import GraduationAlbum from "@/components/graduation/GraduationAlbum";
-import GraduationPricing from "@/components/graduation/GraduationPricing";
+import GraduationHero from "@/components/landing/graduation/GraduationHero";
+import GraduationScope from "@/components/landing/graduation/GraduationScope";
+import GraduationAlbum from "@/components/landing/graduation/GraduationAlbum";
+import GraduationPricing from "@/components/landing/graduation/GraduationPricing";
 import { Music, VolumeX } from "lucide-react";
 
 export default function GraduationDetailPage() {

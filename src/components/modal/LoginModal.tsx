@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, KeyRound, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, KeyRound, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
+import akunData from '@/data/daftarAkun.json';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [eventCode, setEventCode] = useState('');
@@ -22,12 +25,10 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      // Sedikit delay agar transisi scale/opacity terbaca oleh browser
       const timer = setTimeout(() => setIsAnimating(true), 10);
       return () => clearTimeout(timer);
     } else {
       setIsAnimating(false);
-      // Tunggu animasi keluar selesai sebelum elemen di-unmount dari DOM
       const timer = setTimeout(() => setIsVisible(false), 300);
       return () => clearTimeout(timer);
     }
@@ -35,22 +36,48 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   if (!isVisible) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Logika Handler Login Admin
+  const handleAdminSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ email, password });
+    if (email === akunData.admin.email && password === akunData.admin.password) {
+      alert('Login Admin Berhasil!');
+      router.push(akunData.admin.redirectUrl);
+      onClose();
+    } else if (email === akunData.user.email && password === akunData.user.password) {
+      alert('Login User Berhasil!');
+      router.push(akunData.user.redirectUrl);
+    } else {
+      alert('Email atau Password Admin salah! (Gunakan: admin@cekreks.id / password123)');
+    }
+  };
+
+  // Logika Handler Connect to Event (Vendor)
+  const handleVendorConnect = () => {
+    const cleanCode = eventCode.trim().toUpperCase();
+    const foundEvent = akunData.events.find(ev => ev.code.toUpperCase() === cleanCode);
+
+    if (foundEvent) {
+      alert(`Berhasil terhubung ke event: ${foundEvent.title}`);
+      router.push(foundEvent.redirectUrl); // Mengarah ke /event/[code]/photobooth
+      onClose();
+    } else {
+      alert('Kode Event tidak ditemukan! (Coba gunakan kode: 4S03UZ atau K4X41Z)');
+    }
   };
 
   return (
     <div
       onClick={onClose}
-      className={`fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'
-        }`}
+      className={`fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${
+        isAnimating ? 'opacity-100' : 'opacity-0'
+      }`}
     >
       {/* Container Modal dengan Animasi Pop-up (Scale) */}
       <div
         onClick={(e) => e.stopPropagation()} // Mencegah modal tertutup saat area dalam diklik
-        className={`relative w-full max-w-md p-8 bg-[#0d0b14] border border-purple-900/40 rounded-3xl shadow-[0_0_35px_rgba(168,85,247,0.15)] text-white transition-all duration-300 transform ${isAnimating ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
-          }`}
+        className={`relative w-full max-w-md p-8 bg-[#0d0b14] border border-purple-900/40 rounded-3xl shadow-[0_0_35px_rgba(168,85,247,0.15)] text-white transition-all duration-300 transform ${
+          isAnimating ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
+        }`}
       >
 
         {/* Tombol Close (X) */}
@@ -69,7 +96,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </div>
 
         {/* Form Login Utama */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleAdminSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-semibold tracking-wider text-gray-400 uppercase mb-2">
               Email Address
@@ -78,7 +105,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="user@example.com"
+              placeholder="admin@cekreks.id"
               required
               className="w-full px-4 py-3 bg-[#13111c] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition text-sm"
             />
@@ -138,10 +165,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
             <button
               type="button"
-              onClick={() => {
-                // Logika connect event Anda di sini
-                console.log({ eventCode });
-              }}
+              onClick={handleVendorConnect}
               className="px-5 py-3 font-bold tracking-wider text-white uppercase bg-gradient-to-r from-[#ff4d6d]/80 via-[#d946ef]/80 to-[#8b5cf6]/80 border border-purple-500/30 rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.2)] hover:shadow-[0_0_20px_rgba(217,70,239,0.4)] transition duration-200 text-xs whitespace-nowrap"
             >
               Connect
