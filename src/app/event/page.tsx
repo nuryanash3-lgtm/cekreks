@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Copy, Play, Settings, Image as ImageIcon, Download, Database, Trash2, Coins, Key, CheckCircle2 } from 'lucide-react';
+import { 
+  Plus, Copy, Play, Settings, Image as ImageIcon, Download, 
+  Database, Trash2, Coins, Key, CheckCircle2, X, Globe, LogOut 
+} from 'lucide-react';
 import akunData from '@/data/daftarAkun.json';
 
 interface EventItem {
@@ -18,6 +21,12 @@ export default function EventDashboardPage() {
   );
   const [kredit] = useState(198);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // State untuk Modal & Form Buat Event Baru
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDesc, setNewEventDesc] = useState('');
+  const [language, setLanguage] = useState<'ID' | 'EN'>('ID');
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -51,6 +60,32 @@ export default function EventDashboardPage() {
     }
   };
 
+  const handleCreateEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEventTitle.trim()) {
+      showToast('Nama event tidak boleh kosong!');
+      return;
+    }
+
+    // Generate random 6-character code
+    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const currentDate = new Date().toLocaleDateString('en-US');
+
+    const newEvent: EventItem = {
+      code: randomCode,
+      title: newEventTitle.toUpperCase(),
+      date: currentDate,
+      description: newEventDesc || 'Semua bisa mengekspresikan disini',
+      isPublic: true,
+    };
+
+    setEvents([newEvent, ...events]);
+    setIsModalOpen(false);
+    setNewEventTitle('');
+    setNewEventDesc('');
+    showToast(`Event ${newEvent.title} berhasil dibuat!`);
+  };
+
   return (
     <div className="min-h-screen bg-[#07050d] text-white p-6 md:p-10 font-sans relative">
       
@@ -59,6 +94,68 @@ export default function EventDashboardPage() {
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#13111c] border border-purple-500/50 text-white px-4 py-3 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.3)] animate-fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* MODAL BUAT EVENT BARU */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#0d0b14] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.2)] relative animate-scale-up">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+              <h3 className="text-lg font-extrabold tracking-wider text-white">Buat Event Baru</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEvent}>
+              <div className="mb-4">
+                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                  Nama Event
+                </label>
+                <input 
+                  type="text"
+                  placeholder="Contoh: WEDDING PARTY"
+                  value={newEventTitle}
+                  onChange={(e) => setNewEventTitle(e.target.value)}
+                  className="w-full bg-[#13111c] border border-white/10 focus:border-purple-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition"
+                  required
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                  Deskripsi Event
+                </label>
+                <textarea 
+                  placeholder="Tulis deskripsi singkat..."
+                  value={newEventDesc}
+                  onChange={(e) => setNewEventDesc(e.target.value)}
+                  rows={3}
+                  className="w-full bg-[#13111c] border border-white/10 focus:border-purple-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 text-xs font-bold uppercase bg-[#13111c] border border-white/10 hover:border-white/30 rounded-xl text-gray-300 transition"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform"
+                >
+                  Simpan Event
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -73,18 +170,59 @@ export default function EventDashboardPage() {
           </p>
         </div>
 
-        {/* Badges & Actions */}
+        {/* Badges & Actions (Updated like reference image) */}
         <div className="flex flex-wrap items-center gap-3">
-          <button className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-purple-500/30 rounded-full hover:border-purple-500 transition">
-            Whitelabel
-          </button>
-          <button className="px-4 py-2 text-xs font-bold uppercase bg-gradient-to-r from-amber-500 to-yellow-600 text-black rounded-full shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+          <button 
+            onClick={() => showToast('Membuka Info Harga')}
+            className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-amber-500/50 text-amber-400 rounded-full hover:border-amber-500 hover:scale-105 transition shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+          >
             Info Harga
           </button>
+          
+          <button 
+            onClick={() => showToast('Membuka Tutorial')}
+            className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-purple-500/30 text-purple-300 rounded-full hover:border-purple-500 hover:scale-105 transition"
+          >
+            Tutorial
+          </button>
+
+          {/* Toggle Bahasa EN / ID */}
+          <div className="flex items-center bg-[#13111c] border border-white/10 rounded-full p-1">
+            <button 
+              onClick={() => { setLanguage('EN'); showToast('Bahasa diubah ke English'); }}
+              className={`px-3 py-1 text-[11px] font-bold rounded-full transition ${language === 'EN' ? 'bg-white text-black' : 'text-gray-400'}`}
+            >
+              EN
+            </button>
+            <button 
+              onClick={() => { setLanguage('ID'); showToast('Bahasa diubah ke Indonesia'); }}
+              className={`px-3 py-1 text-[11px] font-bold rounded-full transition ${language === 'ID' ? 'bg-white text-black' : 'text-gray-400'}`}
+            >
+              ID
+            </button>
+          </div>
+
+          {/* Badge Kredit */}
           <div className="flex items-center space-x-2 px-4 py-2 bg-[#13111c] border border-purple-500/40 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.15)]">
             <Coins className="w-4 h-4 text-purple-400" />
             <span className="text-xs font-bold">{kredit} Kredit</span>
           </div>
+
+          {/* Icon Settings */}
+          <button 
+            onClick={() => showToast('Membuka Pengaturan Akun')}
+            className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-purple-500 text-gray-300 hover:text-white hover:scale-105 transition"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+
+          {/* Icon Logout */}
+          <button 
+            onClick={() => showToast('Berhasil Keluar')}
+            className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-rose-500 text-gray-300 hover:text-rose-400 hover:scale-105 transition"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
@@ -107,7 +245,10 @@ export default function EventDashboardPage() {
           </div>
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
             <span className="text-[11px] text-purple-400 cursor-pointer hover:underline">Info Harga Credit</span>
-            <button className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)]">
+            <button 
+              onClick={() => showToast('Mengarahkan ke halaman Beli Kredit')}
+              className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform"
+            >
               Beli Kredit
             </button>
           </div>
@@ -118,7 +259,10 @@ export default function EventDashboardPage() {
             <div className="text-2xl font-mono font-bold mt-3 text-white tracking-widest">00:00:00</div>
           </div>
           <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
-            <button className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)]">
+            <button 
+              onClick={() => showToast('Mengarahkan ke pembelian Unlimited')}
+              className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform"
+            >
               Buy Unlimited
             </button>
           </div>
@@ -128,7 +272,10 @@ export default function EventDashboardPage() {
       {/* SECTION: EVENT ANDA */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold tracking-wider">Event Anda</h2>
-        <button className="px-5 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] flex items-center gap-2">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="px-5 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] flex items-center gap-2 hover:scale-105 transition transform cursor-pointer"
+        >
           <Plus className="w-4 h-4" /> Buat Event
         </button>
       </div>
@@ -136,8 +283,11 @@ export default function EventDashboardPage() {
       {/* GRID EVENT */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* CARD BUAT EVENT BARU */}
-        <div className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[420px] bg-[#0d0b14]/50 cursor-pointer group transition">
-          <div className="w-14 h-14 rounded-full bg-purple-500/10 group-hover:bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 transition shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+        <div 
+          onClick={() => setIsModalOpen(true)}
+          className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[420px] bg-[#0d0b14]/50 cursor-pointer group transition hover:scale-[1.01]"
+        >
+          <div className="w-14 h-14 rounded-full bg-purple-500/10 group-hover:bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 transition shadow-[0_0_15px_rgba(168,85,247,0.15)] group-hover:scale-110">
             <Plus className="w-7 h-7" />
           </div>
           <h3 className="font-bold text-base text-white tracking-wide">Buat event baru</h3>
@@ -146,7 +296,7 @@ export default function EventDashboardPage() {
 
         {/* LIST EVENT CARDS */}
         {events.map((ev) => (
-          <div key={ev.code} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-2xl">
+          <div key={ev.code} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-2xl hover:border-purple-500/30 transition">
             <div>
               {/* Header Card */}
               <div className="flex items-center justify-between mb-1">
