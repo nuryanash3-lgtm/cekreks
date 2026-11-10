@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Plus, Copy, Play, Settings, Image as ImageIcon, Download, 
-  Database, Trash2, Coins, Key, CheckCircle2, X, Globe, LogOut 
+  Database, Trash2, Coins, Key, CheckCircle2, X, LogOut 
 } from 'lucide-react';
 import akunData from '@/data/daftarAkun.json';
 
@@ -170,7 +170,6 @@ export default function EventDashboardPage() {
           </p>
         </div>
 
-        {/* Badges & Actions (Updated like reference image) */}
         <div className="flex flex-wrap items-center gap-3">
           <button 
             onClick={() => showToast('Membuka Info Harga')}
@@ -186,7 +185,6 @@ export default function EventDashboardPage() {
             Tutorial
           </button>
 
-          {/* Toggle Bahasa EN / ID */}
           <div className="flex items-center bg-[#13111c] border border-white/10 rounded-full p-1">
             <button 
               onClick={() => { setLanguage('EN'); showToast('Bahasa diubah ke English'); }}
@@ -202,13 +200,11 @@ export default function EventDashboardPage() {
             </button>
           </div>
 
-          {/* Badge Kredit */}
           <div className="flex items-center space-x-2 px-4 py-2 bg-[#13111c] border border-purple-500/40 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.15)]">
             <Coins className="w-4 h-4 text-purple-400" />
             <span className="text-xs font-bold">{kredit} Kredit</span>
           </div>
 
-          {/* Icon Settings */}
           <button 
             onClick={() => showToast('Membuka Pengaturan Akun')}
             className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-purple-500 text-gray-300 hover:text-white hover:scale-105 transition"
@@ -216,7 +212,6 @@ export default function EventDashboardPage() {
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Icon Logout */}
           <button 
             onClick={() => showToast('Berhasil Keluar')}
             className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-rose-500 text-gray-300 hover:text-rose-400 hover:scale-105 transition"
@@ -324,25 +319,33 @@ export default function EventDashboardPage() {
                 </button>
               </div>
 
-              {/* CODE & COPY URL ROW */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="flex items-center justify-between px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs">
-                  <div className="flex items-center gap-1 text-gray-400 text-[10px]">
-                    <Key className="w-3 h-3 text-purple-400" />
-                    <span>CODE:</span>
+              {/* KONDISIONAL: KODE & URL HANYA MUNCUL JIKA isPublic TRUE */}
+              {ev.isPublic ? (
+                <div className="grid grid-cols-2 gap-2 mb-3 animate-fade-in">
+                  <div className="flex items-center justify-between px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs">
+                    <div className="flex items-center gap-1 text-gray-400 text-[10px]">
+                      <Key className="w-3 h-3 text-purple-400" />
+                      <span>CODE:</span>
+                    </div>
+                    <span className="font-mono font-bold text-pink-400 tracking-wider">{ev.code}</span>
+                    <button onClick={() => handleCopyText(ev.code, `Kode ${ev.code}`)} className="text-gray-400 hover:text-white transition">
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <span className="font-mono font-bold text-pink-400 tracking-wider">{ev.code}</span>
-                  <button onClick={() => handleCopyText(ev.code, `Kode ${ev.code}`)} className="text-gray-400 hover:text-white transition">
-                    <Copy className="w-3.5 h-3.5" />
+                  <button 
+                    onClick={() => handleCopyText(`https://cekreks.id/event/${ev.code}`, 'URL Event')}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-purple-400" /> Copy URL
                   </button>
                 </div>
-                <button 
-                  onClick={() => handleCopyText(`https://cekreks.id/event/${ev.code}`, 'URL Event')}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition"
-                >
-                  <Copy className="w-3.5 h-3.5 text-purple-400" /> Copy URL
-                </button>
-              </div>
+              ) : (
+                <div className="mb-3 px-3 py-2.5 bg-[#13111c]/50 border border-dashed border-white/10 rounded-xl text-center">
+                  <span className="text-[11px] text-gray-200 font-medium italic">
+                    Event diset Private ( Kode & URL disembunyikan )
+                  </span>
+                </div>
+              )}
 
               {/* MULAI & PENGATURAN ROW */}
               <div className="grid grid-cols-2 gap-2 mb-2">
