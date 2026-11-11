@@ -356,7 +356,10 @@ export default function EventDashboardPage() {
                   <Play className="w-3.5 h-3.5 fill-current text-white" /> Mulai
                 </a>
                 <button 
-                  onClick={() => showToast(`Membuka pengaturan: ${ev.title}`)}
+                  onClick={() => {
+                    showToast(`Membuka pengaturan: ${ev.title}`);
+                    window.location.href = `/event/${ev.code}/settings`
+                  }}
                   className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white"
                 >
                   <Settings className="w-3.5 h-3.5 text-purple-400" /> Pengaturan

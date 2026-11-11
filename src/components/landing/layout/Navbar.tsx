@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
 import { NAV_ITEMS } from "@/constants/navigation";
-import LoginModal from "../../modal/LoginModal";
+import LoginModal from "../modal/LoginModal";
 
 const LANGUAGES = [
     { code: "id", label: "Bahasa (ID)" },
