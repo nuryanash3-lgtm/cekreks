@@ -62,7 +62,7 @@ export default function NavbarEvent() {
           className="flex items-center space-x-2 bg-gradient-to-r from-[#9d4edd] to-[#7b2cbf] hover:opacity-90 text-white px-5 py-2.5 rounded-xl text-xs font-bold tracking-wider shadow-[0_0_20px_rgba(157,78,221,0.4)] transition-all cursor-pointer"
         >
           <Save className="w-4 h-4" />
-          <span>Save Concept</span>
+          <span>Save</span>
         </button>
 
         <button
