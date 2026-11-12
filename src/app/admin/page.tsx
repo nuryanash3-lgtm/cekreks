@@ -1,224 +1,250 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  Copy, 
-  Play, 
-  Settings, 
-  Image as ImageIcon, 
-  Download, 
-  Database, 
-  Trash2, 
-  Coins 
+import {
+  Search,
+  Coins,
+  Trash2,
+  UserPlus
 } from 'lucide-react';
+import TopupTokenModal from '@/components/admin/TopupTokenModal';
+import CreateUserModal from '@/components/admin/CreateUserModal'; // Import modal buat user baru
 
-const initialEvents = [
+const initialUsers = [
   {
     id: '1',
-    title: 'ARTBOOTH',
-    date: '10/17/2026',
-    description: 'Semua bisa mengekspresikan disini',
-    isPublic: true,
-    code: '4S03UZ',
+    name: 'Budi Santoso',
+    email: 'budi@eventorganizer.id',
+    phone: '081234567890',
+    role: 'Operator Event',
+    tokens: 1200,
+    status: 'Aktif',
+    lastActive: '2026-05-18 14:20',
   },
   {
     id: '2',
-    title: 'Wedding Party',
-    date: '11/7/2026',
-    description: 'Wedding At Baros',
-    isPublic: true,
-    code: 'K4X41Z',
+    name: 'Siti Rahma',
+    email: 'siti@weddingcorp.com',
+    phone: '081987654321',
+    role: 'Client Admin',
+    tokens: 1200,
+    status: 'Ditangguhkan',
+    lastActive: '2026-05-18 11:05',
+  },
+  {
+    id: '3',
+    name: 'Rian Pratama',
+    email: 'rian@cekreks.id',
+    phone: '085711223344',
+    role: 'Super Admin',
+    tokens: 9999,
+    status: 'Ditangguhkan',
+    lastActive: '2026-05-18 14:45',
   },
 ];
 
-export default function DashboardPage() {
-  const [events, setEvents] = useState(initialEvents);
-  const [kredit] = useState(198);
+export default function UserManagementPage() {
+  const [users, setUsers] = useState(initialUsers);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleCopyText = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    alert(`${label} berhasil disalin!`);
+  // State Modal Top-Up Token
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false);
+  const [selectedUserForTopup, setSelectedUserForTopup] = useState<any>(null);
+
+  // State Modal Tambah Pengguna Baru
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const totalUsers = users.length;
+  const activeUsers = users.filter(u => u.status === 'Aktif').length;
+  const totalTokens = users.reduce((acc, curr) => acc + curr.tokens, 0);
+
+  const handleToggleStatus = (id: string) => {
+    setUsers(users.map(user => {
+      if (user.id === id) {
+        const newStatus = user.status === 'Aktif' ? 'Ditangguhkan' : 'Aktif';
+        return { ...user, status: newStatus };
+      }
+      return user;
+    }));
   };
 
-  const handleTogglePublic = (id: string) => {
-    setEvents(events.map(ev => ev.id === id ? { ...ev, isPublic: !ev.isPublic } : ev));
-  };
-
-  const handleDeleteEvent = (id: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus event ini?')) {
-      setEvents(events.filter(ev => ev.id !== id));
+  const handleDeleteUser = (id: string, name: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus pengguna ${name}?`)) {
+      setUsers(users.filter(u => u.id !== id));
     }
   };
 
+  const handleTopupSuccess = (userId: string, addedAmount: number) => {
+    setUsers(users.map(u => u.id === userId ? { ...u, tokens: u.tokens + addedAmount } : u));
+  };
+
+  // Fungsi simpan pengguna baru ke state tabel
+  const handleCreateUser = (newUser: { name: string; email: string; phone: string; role: string; tokens: number }) => {
+    const createdUser = {
+      id: String(users.length + 1),
+      ...newUser,
+      status: 'Aktif', // Status default ketika baru dibuat
+      lastActive: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    };
+    setUsers([createdUser, ...users]);
+    alert(`Berhasil mendaftarkan pengguna baru: ${newUser.name}!`);
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.role.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div>
+    <div className="p-4 md:p-8 text-white min-h-screen">
+
       {/* HEADER PAGE */}
-      <div className="pb-6 mb-8 border-b border-white/10">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-wider bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
-          DASHBOARD
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Selamat datang kembali, <span className="text-purple-400 font-semibold">Hafizh Muttaqin</span>
-        </p>
-      </div>
-
-      {/* STATS CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        
-        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg">
-          <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">Total Event</span>
-          <div className="text-4xl font-black mt-3 text-white tracking-widest">{events.length}</div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-wide">
+            Manajemen Pengguna
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Daftarkan, hapus, dan atur kuota status akun pengguna webapp.
+          </p>
         </div>
-
-        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
-          <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">Paket Saat Ini</span>
-          <div className="text-3xl font-black mt-3 bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent italic tracking-wider">
-            Free
-          </div>
-        </div>
-
-        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
-          <div>
-            <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">Kredit Tersedia</span>
-            <div className="text-3xl font-black mt-3 text-white tracking-wider flex items-center gap-2">
-              <Coins className="w-6 h-6 text-purple-400" /> {kredit}
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-            <span className="text-[11px] text-purple-400 cursor-pointer hover:underline">Info Harga Credit</span>
-            <button className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition">
-              Beli Kredit
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
-          <div>
-            <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">Unlimited Time</span>
-            <div className="text-2xl font-mono font-bold mt-3 text-white tracking-widest">00:00:00</div>
-            <span className="text-[11px] text-gray-400 mt-1 block">Credits active</span>
-          </div>
-          <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
-            <button className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition">
-              Buy Unlimited
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* SECTION: EVENT ANDA */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold tracking-wider">Event Anda</h2>
-        <button 
-          onClick={() => alert('Fitur buat event baru akan dibuka!')}
-          className="px-5 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] hover:scale-105 transition flex items-center gap-2"
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="px-5 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:scale-105 transition flex items-center justify-center gap-2 self-start md:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Buat Event
+          <UserPlus className="w-4 h-4" /> Tambah Pengguna Baru
         </button>
       </div>
 
-      {/* GRID DAFTAR EVENT */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        
-        {/* Card Placeholder: Buat Event Baru */}
-        <div className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[380px] bg-[#0d0b14]/50 cursor-pointer transition group">
-          <div className="w-12 h-12 rounded-full bg-purple-500/10 group-hover:bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 transition">
-            <Plus className="w-6 h-6" />
-          </div>
-          <h3 className="font-bold text-sm text-white">Buat event baru</h3>
-          <p className="text-xs text-gray-400 mt-1">Mulai photobooth baru</p>
+      {/* STATS CARDS ROW */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg">
+          <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Total Pengguna</span>
+          <div className="text-3xl font-black mt-3 text-white tracking-widest">{totalUsers} Akun</div>
         </div>
-
-        {/* Mapping Daftar Event */}
-        {events.map((ev) => (
-          <div key={ev.id} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-xl">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-bold tracking-wider">{ev.title}</h3>
-                <span className={`w-2.5 h-2.5 rounded-full ${ev.isPublic ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-gray-500'}`} />
-              </div>
-              <div className="text-[11px] text-gray-500 mb-2">{ev.date}</div>
-              <p className="text-xs text-gray-300 mb-4">{ev.description}</p>
-
-              <div className="flex items-center justify-between p-2.5 bg-[#13111c] rounded-xl mb-4 border border-white/5">
-                <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">Public Event</span>
-                <button 
-                  onClick={() => handleTogglePublic(ev.id)}
-                  className={`w-9 h-5 flex items-center rounded-full p-1 transition duration-300 ${ev.isPublic ? 'bg-purple-600 justify-end' : 'bg-gray-700 justify-start'}`}
-                >
-                  <div className="bg-white w-3.5 h-3.5 rounded-full shadow-md" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="flex items-center justify-between px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs">
-                  <span className="text-gray-400 text-[10px]">CODE:</span>
-                  <span className="font-mono font-bold text-pink-400 tracking-widest">{ev.code}</span>
-                  <button onClick={() => handleCopyText(ev.code, `Kode ${ev.code}`)} className="text-gray-400 hover:text-white">
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <button 
-                  onClick={() => handleCopyText(`https://cekreks.id/event/${ev.code}/photobooth`, 'URL Event')}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition"
-                >
-                  <Copy className="w-3.5 h-3.5 text-purple-400" /> Copy URL
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <a 
-                  href={`/event/${ev.code}/photobooth`}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current text-white" /> Mulai
-                </a>
-                <button 
-                  onClick={() => alert(`Buka pengaturan event: ${ev.title}`)}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition"
-                >
-                  <Settings className="w-3.5 h-3.5 text-purple-400" /> Pengaturan
-                </button>
-              </div>
-
-              <button 
-                onClick={() => alert(`Membuka galeri event ${ev.title}`)}
-                className="w-full py-2.5 bg-[#13111c] border border-white/10 hover:border-white/20 rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2 transition mb-3"
-              >
-                <ImageIcon className="w-3.5 h-3.5 text-purple-400" /> Galeri
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5">
-              <button 
-                onClick={() => alert('Mengunduh semua data ZIP...')}
-                className="flex flex-col items-center justify-center p-2 bg-[#13111c] hover:bg-white/5 rounded-xl text-[10px] text-gray-300 transition"
-              >
-                <Download className="w-3.5 h-3.5 text-blue-400 mb-1" />
-                <span>Unduh ZIP</span>
-              </button>
-              <button 
-                onClick={() => alert('Mencadangkan ke Google Drive...')}
-                className="flex flex-col items-center justify-center p-2 bg-[#13111c] hover:bg-white/5 rounded-xl text-[10px] text-gray-300 transition"
-              >
-                <Database className="w-3.5 h-3.5 text-purple-400 mb-1" />
-                <span>GDrive</span>
-              </button>
-              <button 
-                onClick={() => handleDeleteEvent(ev.id)}
-                className="flex flex-col items-center justify-center p-2 bg-[#13111c] hover:bg-red-500/10 rounded-xl text-[10px] text-red-400 transition"
-              >
-                <Trash2 className="w-3.5 h-3.5 mb-1" />
-                <span>Hapus</span>
-              </button>
-            </div>
-
-          </div>
-        ))}
-
+        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg">
+          <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Pengguna Aktif</span>
+          <div className="text-3xl font-black mt-3 text-emerald-400 tracking-widest">{activeUsers} Akun</div>
+        </div>
+        <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg">
+          <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Total Token Beredar</span>
+          <div className="text-3xl font-black mt-3 text-yellow-400 tracking-widest">{totalTokens} Token</div>
+        </div>
       </div>
+
+      {/* SEARCH BAR */}
+      <div className="relative mb-6">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
+          <Search className="w-4 h-4" />
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari nama, email, atau role..."
+          className="w-full pl-11 pr-4 py-3 bg-[#0d0b14] border border-white/10 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
+        />
+      </div>
+
+      {/* TABLE USERS */}
+      <div className="bg-[#0d0b14] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/10 text-xs text-gray-400 uppercase tracking-wider">
+                <th className="py-4 px-6">Pengguna</th>
+                <th className="py-4 px-6">Role / Akses</th>
+                <th className="py-4 px-6">Sisa Token</th>
+                <th className="py-4 px-6">Status</th>
+                <th className="py-4 px-6">Aktivitas Terakhir</th>
+                <th className="py-4 px-6 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-sm">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-white/[0.02] transition">
+                    <td className="py-4 px-6">
+                      <div className="font-bold text-white">{user.name}</div>
+                      <div className="text-xs text-gray-400">{user.email} • {user.phone}</div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="px-3 py-1 bg-[#161324] border border-white/10 text-purple-300 text-xs rounded-full font-medium">
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-1.5 font-bold text-yellow-400">
+                        <Coins className="w-4 h-4" /> {user.tokens}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <button
+                        onClick={() => handleToggleStatus(user.id)}
+                        title="Klik untuk mengubah status"
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer hover:opacity-80 ${user.status === 'Aktif'
+                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+                          }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'Aktif' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                        {user.status}
+                      </button>
+                    </td>
+                    <td className="py-4 px-6 text-xs text-gray-400 font-mono">
+                      {user.lastActive}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedUserForTopup(user);
+                            setIsTopupModalOpen(true);
+                          }}
+                          title="Top-up Token"
+                          className="p-2 bg-[#161324] hover:bg-white/10 rounded-lg text-yellow-400 transition cursor-pointer"
+                        >
+                          <Coins className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.name)}
+                          title="Hapus Pengguna"
+                          className="p-2 bg-[#161324] hover:bg-red-500/10 rounded-lg text-rose-400 transition cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-500 text-xs">
+                    Tidak ada pengguna yang ditemukan.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* MODAL TOP-UP */}
+      <TopupTokenModal
+        isOpen={isTopupModalOpen}
+        onClose={() => setIsTopupModalOpen(false)}
+        user={selectedUserForTopup}
+        onSuccess={handleTopupSuccess}
+      />
+
+      {/* MODAL TAMBAH PENGGUNA BARU */}
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSave={handleCreateUser}
+      />
+
     </div>
   );
 }
