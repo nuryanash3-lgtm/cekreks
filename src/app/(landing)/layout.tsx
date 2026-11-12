@@ -1,7 +1,7 @@
 import React from 'react';
 import Navbar from "@/components/landing/layout/Navbar";
 import Footer from "@/components/landing/layout/Footer";
-import FloatingAIAgent from "@/components/modal/FloatingAIAgent";
+import FloatingAIAgent from "@/components/landing/modal/FloatingAIAgent";
 
 export default function LandingLayout({
   children,
