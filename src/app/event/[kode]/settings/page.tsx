@@ -9,7 +9,10 @@ import {
   Smartphone, 
   Monitor, 
   Printer, 
-  Database 
+  Database, 
+  Camera,
+  CloudDownload,
+  ScreenShare
 } from "lucide-react";
 
 import EventIdentity from "@/components/event/settings/EventIdentity";
@@ -37,7 +40,10 @@ export default function EventSettingsPage() {
     { id: "output", name: "OUTPUT & OVERLAY (PNG)", icon: ImageIcon },
     { id: "model", name: "IMAGE MODEL SETTINGS", icon: Sliders },
     { id: "remote", name: "REMOTE APP", icon: Smartphone },
+    { id: "camera", name: "CAMERA SETUP", icon: Camera },
+    { id: "screen", name: "SCREEN EDITOR", icon: ScreenShare },
     { id: "print", name: "PRINT SETTINGS", icon: Printer },
+    { id: "guest", name: "GUEST DOWNLOAD PAGE", icon: CloudDownload },
     { id: "data", name: "DATA & MAINTENANCE", icon: Database },
   ];
 
