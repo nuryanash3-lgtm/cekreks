@@ -7,9 +7,7 @@ import {
   Image as ImageIcon, 
   Sliders, 
   Smartphone, 
-  Download, 
   Monitor, 
-  Video, 
   Printer, 
   Database 
 } from "lucide-react";
@@ -28,6 +26,11 @@ export default function EventSettingsPage() {
   const [autoReset, setAutoReset] = useState(true);
   const [countdown, setCountdown] = useState("60s (Default)");
   const [previewMode, setPreviewMode] = useState<"portrait" | "landscape">("portrait");
+  
+  // State background & overlay diangkat ke parent agar persisten saat pindah tab
+  const [selectedBackground, setSelectedBackground] = useState("tpl-hex");
+  const [overlayUrl, setOverlayUrl] = useState("");
+  const [overlayInfo, setOverlayInfo] = useState({ name: "custom_editor_frame.png", dimensions: "1205x1795 px" });
 
   const sidebarMenus = [
     { id: "identity", name: "EVENT IDENTITY & UI", icon: Sparkles },
@@ -56,10 +59,22 @@ export default function EventSettingsPage() {
             setAutoReset={setAutoReset}
             countdown={countdown}
             setCountdown={setCountdown}
+            selectedBackground={selectedBackground}
+            setSelectedBackground={setSelectedBackground}
           />
         );
       case "output":
-        return <OutputOverlay />;
+        return (
+          <OutputOverlay 
+            selectedRatio={previewMode === "portrait" ? "2:3" : "16:9"}
+            overlayUrl={overlayUrl}
+            overlayInfo={overlayInfo}
+            onOverlayApplied={(url, name, dims) => {
+              setOverlayUrl(url);
+              setOverlayInfo({ name, dimensions: dims });
+            }}
+          />
+        );
       case "model":
         return <ImageModel />;
       case "remote":
@@ -75,7 +90,6 @@ export default function EventSettingsPage() {
 
   return (
     <>
-      {/* Tambahan style CSS lokal untuk scrollbar */}
       <style jsx global>{`
         ::-webkit-scrollbar {
           width: 6px;
@@ -139,7 +153,7 @@ export default function EventSettingsPage() {
           </div>
         </main>
 
-        {/* 3. KANAN: LIVE PREVIEW (Kamera Display Studio/Booth) */}
+        {/* 3. KANAN: LIVE PREVIEW */}
         <aside className="w-80 flex flex-col bg-[#0b061a] border border-white/10 rounded-2xl p-5 shrink-0 h-full">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold tracking-wider">
@@ -148,7 +162,6 @@ export default function EventSettingsPage() {
             </div>
           </div>
 
-          {/* Tombol Toggle Portrait / Landscape */}
           <div className="grid grid-cols-2 gap-2 bg-[#130d22] p-1 rounded-xl border border-white/10 mb-4 shrink-0">
             <button
               onClick={() => setPreviewMode("portrait")}
@@ -172,36 +185,43 @@ export default function EventSettingsPage() {
             </button>
           </div>
 
-          {/* Area Layar Simulasi Booth (Mulus & Dinamis Rasio 9:16 vs 16:9) */}
           <div className="flex-1 bg-[#130d22] border border-white/10 rounded-2xl flex flex-col items-center justify-center p-4 relative overflow-hidden shadow-inner">
             <div 
-              className={`border border-white/10 rounded-xl bg-gradient-to-b from-purple-950/20 to-black p-4 flex flex-col items-center justify-between text-center relative transition-all duration-300 ease-in-out ${
+              className={`border border-white/10 rounded-xl p-4 flex flex-col items-center justify-between text-center relative transition-all duration-300 ease-in-out bg-cover bg-center ${selectedBackground} ${
                 previewMode === "portrait" 
                   ? "w-[210px] h-[360px]" 
                   : "w-[280px] h-[160px]"
               }`}
             >
               
-              {/* Isi Preview */}
-              <div className="flex flex-col items-center justify-center my-auto space-y-2">
-                <h3 className={`font-black tracking-widest text-white transition-all duration-300 ${previewMode === "portrait" ? "text-lg" : "text-sm"}`}>
+              {overlayUrl && (
+                <img 
+                  src={overlayUrl} 
+                  alt="Custom Overlay Frame" 
+                  className="absolute inset-0 w-full h-full object-fill pointer-events-none z-20 rounded-xl" 
+                />
+              )}
+
+              <div className="absolute inset-0 bg-black/40 rounded-xl z-0 pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col items-center justify-center my-auto space-y-2">
+                <h3 className={`font-black tracking-widest text-white transition-all duration-300 drop-shadow-md ${previewMode === "portrait" ? "text-lg" : "text-sm"}`}>
                   {eventName || "ARTBOOTH"}
                 </h3>
-                <p className="text-[10px] text-gray-400 max-w-[180px]">
+                <p className="text-[10px] text-gray-200 max-w-[180px] drop-shadow">
                   {eventDesc || "Semua bisa mengekspresikan disini"}
                 </p>
                 <div className="flex space-x-2 pt-1">
                   <span className="bg-[#8b35ff] text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold shadow">
                     LAUNCH
                   </span>
-                  <span className="bg-white/10 text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-white/10">
+                  <span className="bg-black/60 text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-white/20 backdrop-blur-sm">
                     GALLERY
                   </span>
                 </div>
               </div>
 
-              {/* Footer kecil di dalam layar preview */}
-              <div className="text-[8px] text-purple-300/70 font-mono tracking-wider">
+              <div className="relative z-10 text-[8px] text-purple-300 font-mono tracking-wider drop-shadow">
                 CORDAI IMAGE 1
               </div>
 

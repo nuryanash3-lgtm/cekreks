@@ -66,3 +66,39 @@ body {
 .animate-marquee-reverse:hover {
   animation-play-state: paused;
 }
+
+
+/* Ini Background */
+/* Template Backgrounds CSS Patterns */
+.tpl-hex {
+    background-color: #141417;
+    background-image: url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 0l14 8.08v16.17L14 32.33 0 24.25V8.08L14 0zm0 48.5l14-8.08V24.25L14 16.17 0 24.25v16.17L14 48.5z' fill='%231f1f24' stroke='%2309090b' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+.tpl-cybercar {
+    background: radial-gradient(circle at 70% 30%, #ef4444 0%, transparent 45%),
+                radial-gradient(circle at 20% 80%, #06b6d4 0%, transparent 55%),
+                linear-gradient(135deg, #090d16 0%, #1e1b4b 100%);
+}
+.tpl-shards-dark {
+    background: conic-gradient(from 45deg at 30% 40%, #09090b, #1e1b4b, #3b82f6, #09090b, #7e22ce, #09090b);
+}
+.tpl-waterfall {
+    background: radial-gradient(circle at 50% 20%, #f97316 0%, transparent 45%),
+                radial-gradient(circle at 50% 80%, #38bdf8 0%, transparent 60%),
+                linear-gradient(180deg, #1c1917 0%, #0c4a6e 100%);
+}
+.tpl-blue-crystal {
+    background: repeating-linear-gradient(125deg, #09090b 0px, #09090b 12px, #1d4ed8 14px, #09090b 28px),
+                radial-gradient(circle at center, #2563eb, #000000);
+}
+.tpl-neon-poly {
+    background: linear-gradient(135deg, #18181b 25%, #3b0764 50%, #1d4ed8 75%, #09090b 100%);
+}
+.tpl-cracked-obsidian {
+    background: radial-gradient(circle at 25% 50%, rgba(192, 132, 252, 0.4) 0%, transparent 40%),
+                repeating-radial-gradient(circle at 0 0, transparent 0, #121215 15px),
+                #09090b;
+}
+.tpl-galaxy-sky {
+    background: radial-gradient(ellipse at top, #3b82f6 0%, #1e1b4b 50%, #09090b 100%);
+}
