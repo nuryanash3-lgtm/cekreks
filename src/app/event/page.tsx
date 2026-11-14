@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, Copy, Play, Settings, Image as ImageIcon, Download, 
-  Database, Trash2, Coins, Key, CheckCircle2, X, LogOut 
+  Database, Trash2, Coins, Key, CheckCircle2, X, LogOut, AlertTriangle 
 } from 'lucide-react';
 import akunData from '@/data/daftarAkun.json';
 
@@ -16,9 +16,12 @@ interface EventItem {
 }
 
 export default function EventDashboardPage() {
-  const [events, setEvents] = useState<EventItem[]>(
-    akunData.events.map((ev) => ({ ...ev, isPublic: ev.isPublic ?? true }))
-  );
+  // 1. Inisialisasi awal dengan data statis dari JSON (agar server & client render pertama sama persis)
+  const [events, setEvents] = useState<EventItem[]>(() => {
+    return akunData.events.map((ev) => ({ ...ev, isPublic: ev.isPublic ?? false }));
+  });
+
+  const [isMounted, setIsMounted] = useState(false); // <--- State penanda client sudah mount
   const [kredit] = useState(198);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
@@ -27,6 +30,33 @@ export default function EventDashboardPage() {
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDesc, setNewEventDesc] = useState('');
   const [language, setLanguage] = useState<'ID' | 'EN'>('ID');
+
+  // State untuk Modal Peringatan Public Event
+  const [isPublicModalOpen, setIsPublicModalOpen] = useState(false);
+  const [pendingEventCode, setPendingEventCode] = useState<string | null>(null);
+  const [isCheckedAgreement, setIsCheckedAgreement] = useState(false);
+
+  // 2. Ambil data dari localStorage setelah komponen sukses dimuat di browser (Client-side only)
+  useEffect(() => {
+    setIsMounted(true);
+    if (typeof window !== 'undefined') {
+      const savedEvents = localStorage.getItem('cekreks_events_state');
+      if (savedEvents) {
+        try {
+          setEvents(JSON.parse(savedEvents));
+        } catch (e) {
+          console.error("Gagal memparsing data event dari localStorage", e);
+        }
+      }
+    }
+  }, []);
+
+  // Simpan perubahan ke localStorage setiap kali state events berubah (setelah mounted)
+  useEffect(() => {
+    if (isMounted && typeof window !== 'undefined') {
+      localStorage.setItem('cekreks_events_state', JSON.stringify(events));
+    }
+  }, [events, isMounted]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -40,17 +70,45 @@ export default function EventDashboardPage() {
     showToast(`${label} berhasil disalin!`);
   };
 
-  const togglePublicStatus = (code: string) => {
+  const handleToggleClick = (ev: EventItem) => {
+    if (!ev.isPublic) {
+      setPendingEventCode(ev.code);
+      setIsCheckedAgreement(false);
+      setIsPublicModalOpen(true);
+    } else {
+      setEvents(prev =>
+        prev.map(item => {
+          if (item.code === ev.code) {
+            showToast(`Event ${item.title} diset menjadi Private`);
+            return { ...item, isPublic: false };
+          }
+          return item;
+        })
+      );
+    }
+  };
+
+  const confirmEnablePublic = () => {
+    if (!pendingEventCode) return;
+
+    const newRandomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
     setEvents(prev =>
-      prev.map(ev => {
-        if (ev.code === code) {
-          const newStatus = !ev.isPublic;
-          showToast(`Event ${ev.title} diset menjadi ${newStatus ? 'Public' : 'Private'}`);
-          return { ...ev, isPublic: newStatus };
+      prev.map(item => {
+        if (item.code === pendingEventCode) {
+          showToast(`Event ${item.title} diset menjadi Public dengan kode baru!`);
+          return { 
+            ...item, 
+            isPublic: true, 
+            code: newRandomCode 
+          };
         }
-        return ev;
+        return item;
       })
     );
+
+    setIsPublicModalOpen(false);
+    setPendingEventCode(null);
   };
 
   const handleDeleteEvent = (code: string, title: string) => {
@@ -67,7 +125,6 @@ export default function EventDashboardPage() {
       return;
     }
 
-    // Generate random 6-character code
     const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     const currentDate = new Date().toLocaleDateString('en-US');
 
@@ -76,15 +133,20 @@ export default function EventDashboardPage() {
       title: newEventTitle.toUpperCase(),
       date: currentDate,
       description: newEventDesc || 'Semua bisa mengekspresikan disini',
-      isPublic: true,
+      isPublic: false,
     };
 
     setEvents([newEvent, ...events]);
     setIsModalOpen(false);
     setNewEventTitle('');
     setNewEventDesc('');
-    showToast(`Event ${newEvent.title} berhasil dibuat!`);
+    showToast(`Event ${newEvent.title} berhasil dibuat sebagai Private!`);
   };
+
+  // Mencegah render interaktif sebelum client siap (opsional, tapi aman untuk menghindari flash)
+  if (!isMounted) {
+    return null; 
+  }
 
   return (
     <div className="min-h-screen bg-[#07050d] text-white p-6 md:p-10 font-sans relative">
@@ -97,15 +159,81 @@ export default function EventDashboardPage() {
         </div>
       )}
 
+      {/* MODAL PERINGATAN PUBLIC EVENT */}
+      {isPublicModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0b061a] border border-purple-500/40 w-full max-w-lg rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.25)] relative">
+            <div className="flex items-center gap-3 pb-3 mb-4 border-b border-white/10">
+              <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold tracking-wide text-white">Peringatan Akses Event Publik</h3>
+                <p className="text-[11px] text-gray-400">Harap baca ketentuan sebelum mengaktifkan mode publik.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-gray-300 leading-relaxed mb-6">
+              <p>
+                Ketika Event Publik diaktifkan, siapa saja yang memiliki tautan (URL) ini dapat membuka dan menjalankan aktivitas photobooth tanpa harus masuk (login).
+              </p>
+              <p className="font-semibold text-purple-300">
+                Setiap proses generasi akan mengonsumsi dan memotong kredit dari akun Anda. Oleh karena itu:
+              </p>
+              <ul className="list-disc list-inside space-y-1.5 text-gray-400 pl-1">
+                <li>Bagikan tautan hanya kepada pihak yang dipercaya.</li>
+                <li>Jangan bagikan tautan di tempat umum kecuali diperlukan.</li>
+                <li>Pantau penggunaan kredit selama Event Publik aktif.</li>
+                <li>Nonaktifkan Event Publik segera setelah acara selesai atau saat tautan tidak lagi diperlukan.</li>
+              </ul>
+
+              <div className="mt-4 p-3 rounded-xl bg-[#130d22] border border-white/10 flex items-start gap-3 cursor-pointer" onClick={() => setIsCheckedAgreement(!isCheckedAgreement)}>
+                <input 
+                  type="checkbox"
+                  checked={isCheckedAgreement}
+                  onChange={(e) => setIsCheckedAgreement(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                />
+                <span className="text-[11px] text-gray-200 select-none">
+                  Saya memahami risiko dan bertanggung jawab penuh atas penggunaan kredit melalui tautan publik ini.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
+              <button 
+                type="button"
+                onClick={() => { setIsPublicModalOpen(false); setPendingEventCode(null); }}
+                className="px-5 py-2 text-xs font-bold uppercase bg-[#130d22] border border-white/10 hover:border-white/30 rounded-xl text-gray-300 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button 
+                type="button"
+                disabled={!isCheckedAgreement}
+                onClick={confirmEnablePublic}
+                className={`px-5 py-2 text-xs font-bold uppercase rounded-xl transition ${
+                  isCheckedAgreement 
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 cursor-pointer' 
+                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50'
+                }`}
+              >
+                Aktifkan Event Publik
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL BUAT EVENT BARU */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-[#0d0b14] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.2)] relative animate-scale-up">
+          <div className="bg-[#0d0b14] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.2)] relative">
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
               <h3 className="text-lg font-extrabold tracking-wider text-white">Buat Event Baru</h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-white transition"
+                className="text-gray-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -143,13 +271,13 @@ export default function EventDashboardPage() {
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 text-xs font-bold uppercase bg-[#13111c] border border-white/10 hover:border-white/30 rounded-xl text-gray-300 transition"
+                  className="px-5 py-2.5 text-xs font-bold uppercase bg-[#13111c] border border-white/10 hover:border-white/30 rounded-xl text-gray-300 transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button 
                   type="submit"
-                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform"
+                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
                 >
                   Simpan Event
                 </button>
@@ -173,14 +301,14 @@ export default function EventDashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button 
             onClick={() => showToast('Membuka Info Harga')}
-            className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-amber-500/50 text-amber-400 rounded-full hover:border-amber-500 hover:scale-105 transition shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+            className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-amber-500/50 text-amber-400 rounded-full hover:border-amber-500 hover:scale-105 transition shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer"
           >
             Info Harga
           </button>
           
           <button 
             onClick={() => showToast('Membuka Tutorial')}
-            className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-purple-500/30 text-purple-300 rounded-full hover:border-purple-500 hover:scale-105 transition"
+            className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-purple-500/30 text-purple-300 rounded-full hover:border-purple-500 hover:scale-105 transition cursor-pointer"
           >
             Tutorial
           </button>
@@ -188,13 +316,13 @@ export default function EventDashboardPage() {
           <div className="flex items-center bg-[#13111c] border border-white/10 rounded-full p-1">
             <button 
               onClick={() => { setLanguage('EN'); showToast('Bahasa diubah ke English'); }}
-              className={`px-3 py-1 text-[11px] font-bold rounded-full transition ${language === 'EN' ? 'bg-white text-black' : 'text-gray-400'}`}
+              className={`px-3 py-1 text-[11px] font-bold rounded-full transition cursor-pointer ${language === 'EN' ? 'bg-white text-black' : 'text-gray-400'}`}
             >
               EN
             </button>
             <button 
               onClick={() => { setLanguage('ID'); showToast('Bahasa diubah ke Indonesia'); }}
-              className={`px-3 py-1 text-[11px] font-bold rounded-full transition ${language === 'ID' ? 'bg-white text-black' : 'text-gray-400'}`}
+              className={`px-3 py-1 text-[11px] font-bold rounded-full transition cursor-pointer ${language === 'ID' ? 'bg-white text-black' : 'text-gray-400'}`}
             >
               ID
             </button>
@@ -207,14 +335,14 @@ export default function EventDashboardPage() {
 
           <button 
             onClick={() => showToast('Membuka Pengaturan Akun')}
-            className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-purple-500 text-gray-300 hover:text-white hover:scale-105 transition"
+            className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-purple-500 text-gray-300 hover:text-white hover:scale-105 transition cursor-pointer"
           >
             <Settings className="w-4 h-4" />
           </button>
 
           <button 
             onClick={() => showToast('Berhasil Keluar')}
-            className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-rose-500 text-gray-300 hover:text-rose-400 hover:scale-105 transition"
+            className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-rose-500 text-gray-300 hover:text-rose-400 hover:scale-105 transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -242,7 +370,7 @@ export default function EventDashboardPage() {
             <span className="text-[11px] text-purple-400 cursor-pointer hover:underline">Info Harga Credit</span>
             <button 
               onClick={() => showToast('Mengarahkan ke halaman Beli Kredit')}
-              className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform"
+              className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
             >
               Beli Kredit
             </button>
@@ -256,7 +384,7 @@ export default function EventDashboardPage() {
           <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
             <button 
               onClick={() => showToast('Mengarahkan ke pembelian Unlimited')}
-              className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform"
+              className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
             >
               Buy Unlimited
             </button>
@@ -306,8 +434,8 @@ export default function EventDashboardPage() {
                 <span className="text-[11px] font-bold tracking-wider text-gray-300 uppercase">Public Event</span>
                 <button
                   type="button"
-                  onClick={() => togglePublicStatus(ev.code)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  onClick={() => handleToggleClick(ev)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
                     ev.isPublic ? 'bg-gradient-to-r from-pink-500 to-purple-600' : 'bg-gray-700'
                   }`}
                 >
@@ -328,13 +456,13 @@ export default function EventDashboardPage() {
                       <span>CODE:</span>
                     </div>
                     <span className="font-mono font-bold text-pink-400 tracking-wider">{ev.code}</span>
-                    <button onClick={() => handleCopyText(ev.code, `Kode ${ev.code}`)} className="text-gray-400 hover:text-white transition">
+                    <button onClick={() => handleCopyText(ev.code, `Kode ${ev.code}`)} className="text-gray-400 hover:text-white transition cursor-pointer">
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   <button 
                     onClick={() => handleCopyText(`https://cekreks.id/event/${ev.code}`, 'URL Event')}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition cursor-pointer"
                   >
                     <Copy className="w-3.5 h-3.5 text-purple-400" /> Copy URL
                   </button>
@@ -360,7 +488,7 @@ export default function EventDashboardPage() {
                     showToast(`Membuka pengaturan: ${ev.title}`);
                     window.location.href = `/event/${ev.code}/settings`
                   }}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white cursor-pointer"
                 >
                   <Settings className="w-3.5 h-3.5 text-purple-400" /> Pengaturan
                 </button>
@@ -369,7 +497,7 @@ export default function EventDashboardPage() {
               {/* GALERI BUTTON */}
               <button 
                 onClick={() => showToast(`Membuka galeri event ${ev.title}`)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white mb-3"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white mb-3 cursor-pointer"
               >
                 <ImageIcon className="w-3.5 h-3.5 text-purple-400" /> Galeri
               </button>
@@ -379,7 +507,7 @@ export default function EventDashboardPage() {
             <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5">
               <button 
                 onClick={() => showToast(`Mengunduh ZIP untuk ${ev.title}...`)}
-                className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-blue-500/20 hover:border-blue-500/50 rounded-xl text-[10px] text-blue-400 font-medium text-center transition"
+                className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-blue-500/20 hover:border-blue-500/50 rounded-xl text-[10px] text-blue-400 font-medium text-center transition cursor-pointer"
                 title="Unduh Semua Data (ZIP)"
               >
                 <Download className="w-4 h-4 mb-1" />
@@ -387,7 +515,7 @@ export default function EventDashboardPage() {
               </button>
               <button 
                 onClick={() => showToast(`Mencadangkan ${ev.title} ke Google Drive...`)}
-                className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-[10px] text-gray-300 font-medium text-center transition"
+                className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-[10px] text-gray-300 font-medium text-center transition cursor-pointer"
                 title="Cadangkan ke Google Drive"
               >
                 <Database className="w-4 h-4 mb-1 text-purple-400" />
@@ -395,7 +523,7 @@ export default function EventDashboardPage() {
               </button>
               <button 
                 onClick={() => handleDeleteEvent(ev.code, ev.title)}
-                className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-rose-500/20 hover:border-rose-500/50 rounded-xl text-[10px] text-rose-400 font-medium text-center transition"
+                className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-rose-500/20 hover:border-rose-500/50 rounded-xl text-[10px] text-rose-400 font-medium text-center transition cursor-pointer"
                 title="Hapus"
               >
                 <Trash2 className="w-4 h-4 mb-1" />
