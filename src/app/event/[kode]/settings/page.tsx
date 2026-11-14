@@ -31,6 +31,7 @@ export default function EventSettingsPage() {
   const [autoReset, setAutoReset] = useState(true);
   const [countdown, setCountdown] = useState("60s (Default)");
   const [previewMode, setPreviewMode] = useState<"portrait" | "landscape">("portrait");
+  const [outputRatio, setOutputRatio] = useState("2:3");
 
   // State background & overlay (Identity & Output)
   const [selectedBackground, setSelectedBackground] = useState("tpl-hex");
@@ -174,8 +175,8 @@ export default function EventSettingsPage() {
                   key={menu.id}
                   onClick={() => setActiveMenu(menu.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wider transition-all cursor-pointer ${isActive
-                      ? "bg-gradient-to-r from-[#8b35ff] to-[#7b2cbf] text-white shadow-[0_0_15px_rgba(139,53,255,0.4)]"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                    ? "bg-gradient-to-r from-[#8b35ff] to-[#7b2cbf] text-white shadow-[0_0_15px_rgba(139,53,255,0.4)]"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
                     }`}
                 >
                   <div className="flex items-center space-x-3">
@@ -196,7 +197,59 @@ export default function EventSettingsPage() {
           </h1>
 
           <div className="flex-1 overflow-y-auto pr-3">
-            {renderMainContent()}
+            {activeMenu === "identity" && (
+              <EventIdentity
+                eventName={eventName}
+                setEventName={setEventName}
+                eventDesc={eventDesc}
+                setEventDesc={setEventDesc}
+                autoReset={autoReset}
+                setAutoReset={setAutoReset}
+                countdown={countdown}
+                setCountdown={setCountdown}
+                selectedBackground={selectedBackground}
+                setSelectedBackground={setSelectedBackground}
+              />
+            )}
+            {activeMenu === "output" && (
+              <OutputOverlay
+                selectedRatio={outputRatio}
+                overlayUrl={overlayUrl}
+                overlayInfo={overlayInfo}
+                onOverlayApplied={(url, name, dims) => {
+                  setOverlayUrl(url);
+                  setOverlayInfo({ name, dimensions: dims });
+                }}
+                onRatioChange={(ratio, w, h) => {
+                  setOutputRatio(ratio);
+                  // Otomatis sinkronkan mode portrait/landscape preview berdasarkan rasio
+                  setPreviewMode(h >= w ? "portrait" : "landscape");
+                }}
+              />
+            )}
+            {activeMenu === "model" && <ImageModel />}
+            {activeMenu === "remote" && <RemoteApp />}
+            {activeMenu === "camera" && <CameraSetup />}
+            {activeMenu === "print" && <PrintSettings />}
+            {activeMenu === "guest" && (
+              <GuestDownload
+                headerText={headerText} setHeaderText={setHeaderText}
+                subText={subText} setSubText={setSubText}
+                welcomeEnabled={welcomeEnabled} setWelcomeEnabled={setWelcomeEnabled}
+                popupMessage={popupMessage} setPopupMessage={setPopupMessage}
+                popupButtonText={popupButtonText} setPopupButtonText={setPopupButtonText}
+                filePattern={filePattern} setFilePattern={setFilePattern}
+                bgClass={bgClass} setBgClass={setBgClass}
+                customBgUrl={customBgUrl} setCustomBgUrl={setCustomBgUrl}
+                customBgType={customBgType} setCustomBgType={setCustomBgType}
+                originalPhotoEnabled={originalPhotoEnabled} setOriginalPhotoEnabled={setOriginalPhotoEnabled}
+                dlPhotoText={dlPhotoText} setDlPhotoText={setDlPhotoText}
+                dlVideoText={dlVideoText} setDlVideoText={setDlVideoText}
+                layoutStyle={layoutStyle} setLayoutStyle={setLayoutStyle}
+                orientation={orientation} setOrientation={setOrientation}
+              />
+            )}
+            {activeMenu === "data" && <DataMaintenance />}
           </div>
         </main>
 
@@ -224,6 +277,7 @@ export default function EventSettingsPage() {
             layoutStyle={layoutStyle}
             orientation={orientation}
             onOrientationChange={setOrientation}
+            outputRatio={outputRatio} // <-- Pastikan LivePreviewOverlay menerima prop rasio ini
             onDownload={(type) => {
               const pattern = filePattern.trim() || '[EventName]_[Nama]';
               const fileName = pattern.replace('[EventName]', 'CoroAI_Event').replace('[Nama]', 'Guest01');

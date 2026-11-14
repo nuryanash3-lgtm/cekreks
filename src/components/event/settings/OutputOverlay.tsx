@@ -8,6 +8,7 @@ interface OutputOverlayProps {
   overlayUrl?: string;
   overlayInfo?: { name: string; dimensions: string };
   onOverlayApplied?: (dataUrl: string, name: string, dimensions: string) => void;
+  onRatioChange?: (ratio: string, width: number, height: number) => void; // <-- Tambahan prop callback
 }
 
 export default function OutputOverlay({
@@ -15,6 +16,7 @@ export default function OutputOverlay({
   overlayUrl = "",
   overlayInfo = { name: "custom_editor_frame.png", dimensions: "1205x1795 px" },
   onOverlayApplied,
+  onRatioChange,
 }: OutputOverlayProps) {
   const [aspectRatio, setAspectRatio] = useState(selectedRatio);
   const [ratioLabel, setRatioLabel] = useState("PHOTO PORTRAIT (4R)");
@@ -45,6 +47,11 @@ export default function OutputOverlay({
     setRatioLabel(item.label);
     setOutputWidth(item.w);
     setOutputHeight(item.h);
+
+    // Kirim perubahan rasio ke parent component agar Live Preview ikut berubah
+    if (onRatioChange) {
+      onRatioChange(item.ratio, item.w, item.h);
+    }
   };
 
   const handlePngUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -318,7 +325,6 @@ export default function OutputOverlay({
         </p>
       </div>
 
-      {/* Uploaded Overlay Status Pill (Persisten) */}
       {overlayUrl && (
         <div className="flex items-center justify-between p-3 rounded-xl bg-purple-950/40 border border-purple-500/40 text-xs">
           <div className="flex items-center gap-2.5 truncate">
