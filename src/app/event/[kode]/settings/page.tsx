@@ -7,7 +7,6 @@ import {
   Image as ImageIcon, 
   Sliders, 
   Smartphone, 
-  Monitor, 
   Printer, 
   Database, 
   Camera,
@@ -20,7 +19,9 @@ import OutputOverlay from "@/components/event/settings/OutputOverlay";
 import ImageModel from "@/components/event/settings/ImageModel";
 import RemoteApp from "@/components/event/settings/RemoteApp";
 import PrintSettings from "@/components/event/settings/PrintSettings";
+import GuestDownload from "@/components/event/settings/GuestDownload";
 import DataMaintenance from "@/components/event/settings/DataMaintenance";
+import LivePreviewOverlay from "@/components/event/sidebar/LivePreviewOverlay";
 
 export default function EventSettingsPage() {
   const [activeMenu, setActiveMenu] = useState("identity");
@@ -29,11 +30,27 @@ export default function EventSettingsPage() {
   const [autoReset, setAutoReset] = useState(true);
   const [countdown, setCountdown] = useState("60s (Default)");
   const [previewMode, setPreviewMode] = useState<"portrait" | "landscape">("portrait");
-  
-  // State background & overlay diangkat ke parent agar persisten saat pindah tab
+
+  // State background & overlay (Identity & Output)
   const [selectedBackground, setSelectedBackground] = useState("tpl-hex");
   const [overlayUrl, setOverlayUrl] = useState("");
   const [overlayInfo, setOverlayInfo] = useState({ name: "custom_editor_frame.png", dimensions: "1205x1795 px" });
+
+  // State Form Guest Download (Diangkat agar sinkron dengan Live Preview)
+  const [headerText, setHeaderText] = useState<string>('YOUR DIGITAL ART');
+  const [subText, setSubText] = useState<string>('COROAI PHOTOBOOTH');
+  const [welcomeEnabled, setWelcomeEnabled] = useState<boolean>(true);
+  const [popupMessage, setPopupMessage] = useState<string>('Thank you for attending! You can now download your photos.');
+  const [popupButtonText, setPopupButtonText] = useState<string>('Agree & Continue');
+  const [filePattern, setFilePattern] = useState<string>('');
+  const [bgClass, setBgClass] = useState<string>('tpl-hex');
+  const [customBgUrl, setCustomBgUrl] = useState<string | null>(null);
+  const [customBgType, setCustomBgType] = useState<'image' | 'video' | null>(null);
+  const [originalPhotoEnabled, setOriginalPhotoEnabled] = useState<boolean>(true);
+  const [dlPhotoText, setDlPhotoText] = useState<string>('DOWNLOAD PHOTO');
+  const [dlVideoText, setDlVideoText] = useState<string>('DOWNLOAD VIDEO');
+  const [layoutStyle, setLayoutStyle] = useState<'neon' | 'minimal'>('neon');
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
 
   const sidebarMenus = [
     { id: "identity", name: "EVENT IDENTITY & UI", icon: Sparkles },
@@ -71,7 +88,7 @@ export default function EventSettingsPage() {
         );
       case "output":
         return (
-          <OutputOverlay 
+          <OutputOverlay
             selectedRatio={previewMode === "portrait" ? "2:3" : "16:9"}
             overlayUrl={overlayUrl}
             overlayInfo={overlayInfo}
@@ -87,12 +104,34 @@ export default function EventSettingsPage() {
         return <RemoteApp />;
       case "print":
         return <PrintSettings />;
+      case "guest":
+        return (
+          <GuestDownload
+            headerText={headerText} setHeaderText={setHeaderText}
+            subText={subText} setSubText={setSubText}
+            welcomeEnabled={welcomeEnabled} setWelcomeEnabled={setWelcomeEnabled}
+            popupMessage={popupMessage} setPopupMessage={setPopupMessage}
+            popupButtonText={popupButtonText} setPopupButtonText={setPopupButtonText}
+            filePattern={filePattern} setFilePattern={setFilePattern}
+            bgClass={bgClass} setBgClass={setBgClass}
+            customBgUrl={customBgUrl} setCustomBgUrl={setCustomBgUrl}
+            customBgType={customBgType} setCustomBgType={setCustomBgType}
+            originalPhotoEnabled={originalPhotoEnabled} setOriginalPhotoEnabled={setOriginalPhotoEnabled}
+            dlPhotoText={dlPhotoText} setDlPhotoText={setDlPhotoText}
+            dlVideoText={dlVideoText} setDlVideoText={setDlVideoText}
+            layoutStyle={layoutStyle} setLayoutStyle={setLayoutStyle}
+            orientation={orientation} setOrientation={setOrientation}
+          />
+        );
       case "data":
         return <DataMaintenance />;
       default:
         return null;
     }
   };
+
+  // Live preview tampil di tab identity, output, dan guest
+  const showLivePreview = activeMenu === "identity" || activeMenu === "output" || activeMenu === "guest";
 
   return (
     <>
@@ -116,7 +155,7 @@ export default function EventSettingsPage() {
 
       <div className="flex h-[calc(100vh-85px)] w-full bg-[#070312] text-white px-6 pb-6 gap-6 overflow-hidden">
         
-        {/* 1. SIDEBAR KIRI */}
+        {/* 1. SIDEBAR KIRI (Menu Navigasi) */}
         <aside className="w-72 flex flex-col bg-[#0b061a] border border-white/10 rounded-2xl p-4 shrink-0 h-full overflow-y-auto">
           <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold tracking-wider mb-4 px-2">
             <Settings className="w-4 h-4" />
@@ -159,81 +198,37 @@ export default function EventSettingsPage() {
           </div>
         </main>
 
-        {/* 3. KANAN: LIVE PREVIEW */}
-        <aside className="w-80 flex flex-col bg-[#0b061a] border border-white/10 rounded-2xl p-5 shrink-0 h-full">
-          <div className="flex items-center justify-between mb-4 shrink-0">
-            <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold tracking-wider">
-              <Monitor className="w-4 h-4" />
-              <span>LIVE PREVIEW</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 bg-[#130d22] p-1 rounded-xl border border-white/10 mb-4 shrink-0">
-            <button
-              onClick={() => setPreviewMode("portrait")}
-              className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                previewMode === "portrait"
-                  ? "bg-[#8b35ff] text-white shadow-[0_0_10px_rgba(139,53,255,0.4)]"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              PORTRAIT
-            </button>
-            <button
-              onClick={() => setPreviewMode("landscape")}
-              className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                previewMode === "landscape"
-                  ? "bg-[#8b35ff] text-white shadow-[0_0_10px_rgba(139,53,255,0.4)]"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              LANDSCAPE
-            </button>
-          </div>
-
-          <div className="flex-1 bg-[#130d22] border border-white/10 rounded-2xl flex flex-col items-center justify-center p-4 relative overflow-hidden shadow-inner">
-            <div 
-              className={`border border-white/10 rounded-xl p-4 flex flex-col items-center justify-between text-center relative transition-all duration-300 ease-in-out bg-cover bg-center ${selectedBackground} ${
-                previewMode === "portrait" 
-                  ? "w-[210px] h-[360px]" 
-                  : "w-[280px] h-[160px]"
-              }`}
-            >
-              
-              {overlayUrl && (
-                <img 
-                  src={overlayUrl} 
-                  alt="Custom Overlay Frame" 
-                  className="absolute inset-0 w-full h-full object-fill pointer-events-none z-20 rounded-xl" 
-                />
-              )}
-
-              <div className="absolute inset-0 bg-black/40 rounded-xl z-0 pointer-events-none" />
-
-              <div className="relative z-10 flex flex-col items-center justify-center my-auto space-y-2">
-                <h3 className={`font-black tracking-widest text-white transition-all duration-300 drop-shadow-md ${previewMode === "portrait" ? "text-lg" : "text-sm"}`}>
-                  {eventName || "ARTBOOTH"}
-                </h3>
-                <p className="text-[10px] text-gray-200 max-w-[180px] drop-shadow">
-                  {eventDesc || "Semua bisa mengekspresikan disini"}
-                </p>
-                <div className="flex space-x-2 pt-1">
-                  <span className="bg-[#8b35ff] text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold shadow">
-                    LAUNCH
-                  </span>
-                  <span className="bg-black/60 text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-white/20 backdrop-blur-sm">
-                    GALLERY
-                  </span>
-                </div>
-              </div>
-
-              <div className="relative z-10 text-[8px] text-purple-300 font-mono tracking-wider drop-shadow">
-                CORDAI IMAGE 1
-              </div>
-
-            </div>
-          </div>
-        </aside>
+        {/* 3. KANAN: SATU LIVE PREVIEW TUNGGAL YANG DINAMIS */}
+        {showLivePreview && (
+          <LivePreviewOverlay
+            previewMode={previewMode}
+            setPreviewMode={setPreviewMode}
+            selectedBackground={selectedBackground}
+            overlayUrl={overlayUrl}
+            eventName={eventName}
+            eventDesc={eventDesc}
+            activeTab={activeMenu}
+            headerText={headerText}
+            subText={subText}
+            welcomeEnabled={welcomeEnabled}
+            popupMessage={popupMessage}
+            popupButtonText={popupButtonText}
+            bgClass={bgClass}
+            customBgUrl={customBgUrl}
+            customBgType={customBgType}
+            originalPhotoEnabled={originalPhotoEnabled}
+            dlPhotoText={dlPhotoText}
+            dlVideoText={dlVideoText}
+            layoutStyle={layoutStyle}
+            orientation={orientation}
+            onOrientationChange={setOrientation}
+            onDownload={(type) => {
+              const pattern = filePattern.trim() || '[EventName]_[Nama]';
+              const fileName = pattern.replace('[EventName]', 'CoroAI_Event').replace('[Nama]', 'Guest01');
+              alert(`Simulasi unduhan: ${fileName}.${type === 'Photo' ? 'jpg' : 'mp4'}`);
+            }}
+          />
+        )}
       </div>
     </>
   );
