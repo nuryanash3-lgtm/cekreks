@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Settings, 
-  Sparkles, 
-  Image as ImageIcon, 
-  Sliders, 
-  Smartphone, 
-  Printer, 
-  Database, 
+import {
+  Settings,
+  Sparkles,
+  Image as ImageIcon,
+  Sliders,
+  Smartphone,
+  Printer,
+  Database,
   Camera,
   CloudDownload,
   ScreenShare
@@ -22,6 +22,7 @@ import PrintSettings from "@/components/event/settings/PrintSettings";
 import GuestDownload from "@/components/event/settings/GuestDownload";
 import DataMaintenance from "@/components/event/settings/DataMaintenance";
 import LivePreviewOverlay from "@/components/event/sidebar/LivePreviewOverlay";
+import CameraSetup from "@/components/event/settings/CameraSetup";
 
 export default function EventSettingsPage() {
   const [activeMenu, setActiveMenu] = useState("identity");
@@ -102,6 +103,8 @@ export default function EventSettingsPage() {
         return <ImageModel />;
       case "remote":
         return <RemoteApp />;
+      case "camera":
+        return <CameraSetup />;
       case "print":
         return <PrintSettings />;
       case "guest":
@@ -154,7 +157,7 @@ export default function EventSettingsPage() {
       `}</style>
 
       <div className="flex h-[calc(100vh-85px)] w-full bg-[#070312] text-white px-6 pb-6 gap-6 overflow-hidden">
-        
+
         {/* 1. SIDEBAR KIRI (Menu Navigasi) */}
         <aside className="w-72 flex flex-col bg-[#0b061a] border border-white/10 rounded-2xl p-4 shrink-0 h-full overflow-y-auto">
           <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold tracking-wider mb-4 px-2">
@@ -170,11 +173,10 @@ export default function EventSettingsPage() {
                 <button
                   key={menu.id}
                   onClick={() => setActiveMenu(menu.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wider transition-all cursor-pointer ${
-                    isActive
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wider transition-all cursor-pointer ${isActive
                       ? "bg-gradient-to-r from-[#8b35ff] to-[#7b2cbf] text-white shadow-[0_0_15px_rgba(139,53,255,0.4)]"
                       : "text-gray-400 hover:text-white hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon className="w-4 h-4" />
