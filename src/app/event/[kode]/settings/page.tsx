@@ -233,6 +233,7 @@ export default function EventSettingsPage() {
             {activeMenu === "model" && <ImageModel />}
             {activeMenu === "remote" && <RemoteApp />}
             {activeMenu === "camera" && <CameraSetup />}
+            {activeMenu === "screen" && <ScreenEditor />}
             {activeMenu === "print" && <PrintSettings />}
             {activeMenu === "guest" && (
               <GuestDownload
