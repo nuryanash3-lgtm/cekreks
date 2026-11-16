@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Wand2, Sparkles, CheckCircle2, Grid, X } from "lucide-react";
+import ModalOverlayEditor from "./ModalOverlayEditor";
+
 
 interface OutputOverlayProps {
   selectedRatio?: string;
@@ -27,8 +29,10 @@ export default function OutputOverlay({
   const [mosaicEnabled, setMosaicEnabled] = useState(false);
   const [gridSize, setGridSize] = useState("10x10");
 
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isAdvancedEditorOpen, setIsAdvancedEditorOpen] = useState(false);
   const [editorText, setEditorText] = useState("ARTBOOTH 2026");
+
   const [editorColor, setEditorColor] = useState("#8B5CF6");
   const [editorBorderWidth, setEditorBorderWidth] = useState(12);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -362,15 +366,28 @@ export default function OutputOverlay({
           <span>UPLOAD PNG OVERLAY</span>
         </button>
 
-        <button
+                <button
           type="button"
-          onClick={() => setIsEditorOpen(true)}
+          onClick={() => setIsAdvancedEditorOpen(true)}
           className="flex-1 sm:flex-none min-w-[200px] flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/40 hover:border-purple-400 text-purple-300 hover:text-white text-xs font-bold tracking-wider uppercase transition-all cursor-pointer active:scale-95"
         >
           <Sparkles className="w-4 h-4 text-purple-400" />
           <span>OVERLAY EDITOR</span>
         </button>
       </div>
+
+      <ModalOverlayEditor
+        isOpen={isAdvancedEditorOpen}
+        onClose={() => setIsAdvancedEditorOpen(false)}
+        onApply={(dataUrl, name, dimensions) => {
+          if (onOverlayApplied) {
+            onOverlayApplied(dataUrl, name, dimensions);
+          }
+        }}
+        initialWidth={outputWidth}
+        initialHeight={outputHeight}
+      />
+
 
       {isEditorOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
