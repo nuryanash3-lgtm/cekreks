@@ -23,6 +23,7 @@ import GuestDownload from "@/components/event/settings/GuestDownload";
 import DataMaintenance from "@/components/event/settings/DataMaintenance";
 import LivePreviewOverlay from "@/components/event/sidebar/LivePreviewOverlay";
 import CameraSetup from "@/components/event/settings/CameraSetup";
+import ScreenEditor from "@/components/event/settings/ScreenEditor";
 
 export default function EventSettingsPage() {
   const [activeMenu, setActiveMenu] = useState("identity");
@@ -106,6 +107,8 @@ export default function EventSettingsPage() {
         return <RemoteApp />;
       case "camera":
         return <CameraSetup />;
+      case "screen":
+        return <ScreenEditor />;
       case "print":
         return <PrintSettings />;
       case "guest":
