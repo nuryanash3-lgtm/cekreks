@@ -165,7 +165,6 @@ export default function EventSettingsPage() {
         {/* 1. SIDEBAR KIRI (Menu Navigasi) */}
         <aside className="w-72 flex flex-col bg-[#0b061a] border border-white/10 rounded-2xl p-4 shrink-0 h-full overflow-y-auto">
           <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold tracking-wider mb-4 px-2">
-            <Settings className="w-4 h-4" />
             <span>BOOTH SETTINGS</span>
           </div>
 
