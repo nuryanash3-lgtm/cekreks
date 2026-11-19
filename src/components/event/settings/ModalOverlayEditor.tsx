@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOverlayEditor } from './overlay-editor/useOverlayEditor';
 import { OverlayEditorToolbar } from './overlay-editor/OverlayEditorToolbar';
 import {
@@ -13,12 +13,102 @@ import './overlay-editor/overlay-editor.css';
 export interface ModalOverlayEditorProps {
   isOpen?: boolean;
   onClose?: () => void;
+  onApply?: (dataUrl: string, name: string, dimensions: string) => void;
+  initialWidth?: number;
+  initialHeight?: number;
 }
 
-export function ModalOverlayEditor({ isOpen = true, onClose }: ModalOverlayEditorProps) {
+export function ModalOverlayEditor({
+  isOpen = true,
+  onClose,
+  onApply,
+  initialWidth,
+  initialHeight,
+}: ModalOverlayEditorProps) {
   const editor = useOverlayEditor();
 
+  useEffect(() => {
+    if (!isOpen) return;
+    if (
+      typeof initialWidth === 'number' &&
+      initialWidth > 0 &&
+      typeof initialHeight === 'number' &&
+      initialHeight > 0
+    ) {
+      editor.customDimensionChange(initialWidth, initialHeight);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialWidth, initialHeight]);
+
   if (!isOpen) return null;
+
+  const handleApplyAndClose = async () => {
+    await editor.exportOverlayPNG();
+    const domCanvas = editor.canvasRef.current;
+    const displayW = domCanvas?.offsetWidth || 400;
+    const displayH = domCanvas?.offsetHeight || 600;
+    const scaleX = editor.canvasWidth / displayW;
+    const scaleY = editor.canvasHeight / displayH;
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = editor.canvasWidth;
+    offscreen.height = editor.canvasHeight;
+    const ctx = offscreen.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = editor.bgColor;
+      ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+
+      for (const el of editor.elements) {
+        if (!el.visible) continue;
+        const x = el.x * scaleX;
+        const y = el.y * scaleY;
+        const w = el.width * scaleX;
+        const h = el.height * scaleY;
+        ctx.save();
+        ctx.translate(x + w / 2, y + h / 2);
+        ctx.rotate(((el.rotation || 0) * Math.PI) / 180);
+
+        if (el.type === 'image' && el.src) {
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              ctx.drawImage(img, -w / 2, -h / 2, w, h);
+              resolve();
+            };
+            img.onerror = () => resolve();
+            img.src = el.src as string;
+          });
+        } else if (el.type === 'text') {
+          ctx.fillStyle = el.color || '#ffffff';
+          ctx.font = `bold ${Math.round((el.fontSize || 22) * scaleX)}px Inter, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(el.text || '', 0, 0);
+        } else if (el.type === 'shape') {
+          ctx.fillStyle = el.fillColor || '#84cc16';
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+        }
+        ctx.restore();
+      }
+
+      const dataUrl = offscreen.toDataURL('image/png');
+      const fileName =
+        (editor.templateName || 'cekreks-overlay')
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-') + '.png';
+      const dimensions = `${editor.canvasWidth}x${editor.canvasHeight} px`;
+
+      if (onApply) {
+        onApply(dataUrl, fileName, dimensions);
+      }
+    }
+
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <div className="overlay-editor-root fixed inset-0 z-50 bg-[#18181b] text-zinc-200 font-sans h-screen w-screen flex flex-col overflow-hidden select-none text-xs">
@@ -35,7 +125,7 @@ export function ModalOverlayEditor({ isOpen = true, onClose }: ModalOverlayEdito
         onRedo={editor.redo}
         onPrintTestCopy={editor.printTestCopy}
         onDeleteTemplate={editor.deleteTemplate}
-        onExportOverlayPNG={editor.exportOverlayPNG}
+        onExportOverlayPNG={onApply ? handleApplyAndClose : editor.exportOverlayPNG}
         onClose={onClose}
       />
 

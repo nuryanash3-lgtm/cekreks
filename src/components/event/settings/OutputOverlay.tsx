@@ -1,17 +1,163 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Wand2, Sparkles, CheckCircle2, Grid, X } from "lucide-react";
+import { Wand2, Sparkles, CheckCircle2, Grid, X, Trash2, Check } from "lucide-react";
 import ModalOverlayEditor from "./ModalOverlayEditor";
 
+interface OverlayAlbumItem {
+  id: string;
+  name: string;
+  dimensions: string;
+  dataUrl: string;
+  source: "builtin" | "upload" | "editor";
+  isBuiltin?: boolean;
+}
 
 interface OutputOverlayProps {
   selectedRatio?: string;
   overlayUrl?: string;
   overlayInfo?: { name: string; dimensions: string };
   onOverlayApplied?: (dataUrl: string, name: string, dimensions: string) => void;
-  onRatioChange?: (ratio: string, width: number, height: number) => void; // <-- Tambahan prop callback
+  onRatioChange?: (ratio: string, width: number, height: number) => void;
 }
+
+const OVERLAY_ALBUM_STORAGE_KEY = "cekreks_overlay_template_album_v2";
+
+function createBuiltinOverlayDataUrl(
+  variant: "blue-stripes" | "purple-glow" | "blue-stripes-alt" | "dark-radial"
+): string {
+  const svgMap: Record<
+    "blue-stripes" | "purple-glow" | "blue-stripes-alt" | "dark-radial",
+    string
+  > = {
+    "blue-stripes": `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+      <defs>
+        <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0a1638"/>
+          <stop offset="55%" stop-color="#142d6e"/>
+          <stop offset="100%" stop-color="#091026"/>
+        </linearGradient>
+        <pattern id="diagStripes1" width="28" height="28" patternTransform="rotate(28)" patternUnits="userSpaceOnUse">
+          <rect width="12" height="28" fill="#2563eb" fill-opacity="0.35"/>
+        </pattern>
+      </defs>
+      <rect width="600" height="900" fill="url(#bg1)"/>
+      <rect width="600" height="900" fill="url(#diagStripes1)"/>
+      <rect x="24" y="24" width="552" height="852" rx="18" fill="none" stroke="#60a5fa" stroke-opacity="0.4" stroke-width="3"/>
+    </svg>`,
+    "purple-glow": `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+      <defs>
+        <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#2e1065"/>
+          <stop offset="50%" stop-color="#1e3a8a"/>
+          <stop offset="100%" stop-color="#09071a"/>
+        </linearGradient>
+        <radialGradient id="glow2" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#c026d3" stop-opacity="0.45"/>
+          <stop offset="100%" stop-color="#09071a" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="600" height="900" fill="url(#bg2)"/>
+      <rect width="600" height="900" fill="url(#glow2)"/>
+      <rect x="24" y="24" width="552" height="852" rx="18" fill="none" stroke="#c084fc" stroke-opacity="0.45" stroke-width="3"/>
+    </svg>`,
+    "blue-stripes-alt": `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+      <defs>
+        <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="50%" stop-color="#1d4ed8"/>
+          <stop offset="100%" stop-color="#090d1e"/>
+        </linearGradient>
+        <pattern id="diagStripes3" width="22" height="22" patternTransform="rotate(-24)" patternUnits="userSpaceOnUse">
+          <rect width="9" height="22" fill="#38bdf8" fill-opacity="0.3"/>
+        </pattern>
+      </defs>
+      <rect width="600" height="900" fill="url(#bg3)"/>
+      <rect width="600" height="900" fill="url(#diagStripes3)"/>
+      <rect x="24" y="24" width="552" height="852" rx="18" fill="none" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="3"/>
+    </svg>`,
+    "dark-radial": `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+      <defs>
+        <radialGradient id="bg4" cx="50%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#3b0764"/>
+          <stop offset="55%" stop-color="#172554"/>
+          <stop offset="100%" stop-color="#070612"/>
+        </radialGradient>
+      </defs>
+      <rect width="600" height="900" fill="url(#bg4)"/>
+      <rect x="24" y="24" width="552" height="852" rx="18" fill="none" stroke="#a855f7" stroke-opacity="0.35" stroke-width="3"/>
+    </svg>`,
+  };
+
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMap[variant]);
+}
+
+const BUILTIN_OVERLAY_TEMPLATES: OverlayAlbumItem[] = [
+  {
+    id: "builtin-blue-stripes-1",
+    name: "blue_stripes_overlay.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("blue-stripes"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-purple-glow-1",
+    name: "purple_neon_overlay.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("purple-glow"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-blue-stripes-2",
+    name: "blue_stripes_alt.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("blue-stripes-alt"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-dark-radial-1",
+    name: "midnight_glow_overlay.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("dark-radial"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-blue-stripes-3",
+    name: "cobalt_lines_frame.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("blue-stripes"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-purple-glow-2",
+    name: "violet_aura_frame.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("purple-glow"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-dark-radial-2",
+    name: "deep_space_frame.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("dark-radial"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-blue-stripes-4",
+    name: "electric_stripes_frame.png",
+    dimensions: "1205x1795 px",
+    dataUrl: createBuiltinOverlayDataUrl("blue-stripes-alt"),
+    source: "builtin",
+    isBuiltin: true,
+  },
+];
 
 export default function OutputOverlay({
   selectedRatio = "2:3",
@@ -29,13 +175,118 @@ export default function OutputOverlay({
   const [mosaicEnabled, setMosaicEnabled] = useState(false);
   const [gridSize, setGridSize] = useState("10x10");
 
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isAdvancedEditorOpen, setIsAdvancedEditorOpen] = useState(false);
   const [editorText, setEditorText] = useState("ARTBOOTH 2026");
 
   const [editorColor, setEditorColor] = useState("#8B5CF6");
   const [editorBorderWidth, setEditorBorderWidth] = useState(12);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Album simpanan: template bawaan (tidak bisa dihapus) + hasil Upload / ModalOverlayEditor (bisa dihapus)
+  const [savedOverlays, setSavedOverlays] = useState<OverlayAlbumItem[]>(BUILTIN_OVERLAY_TEMPLATES);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(OVERLAY_ALBUM_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as OverlayAlbumItem[];
+        if (Array.isArray(parsed)) {
+          const customItems = parsed.filter(
+            (item) => !item.isBuiltin && item.source !== "builtin"
+          );
+          setSavedOverlays([...BUILTIN_OVERLAY_TEMPLATES, ...customItems]);
+        }
+      }
+    } catch {
+      // Abaikan error storage pada lingkungan terbatas
+    }
+  }, []);
+
+  const persistCustomOverlays = (allItems: OverlayAlbumItem[]) => {
+    setSavedOverlays(allItems);
+    const customOnly = allItems.filter((item) => !item.isBuiltin && item.source !== "builtin");
+    try {
+      window.localStorage.setItem(OVERLAY_ALBUM_STORAGE_KEY, JSON.stringify(customOnly));
+    } catch {
+      // Abaikan jika kuota localStorage penuh
+    }
+  };
+
+  const addOverlayToAlbum = (
+    dataUrl: string,
+    name: string,
+    dimensions: string,
+    source: "upload" | "editor"
+  ) => {
+    if (!dataUrl) return;
+    const newItem: OverlayAlbumItem = {
+      id: `${source}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: name || "overlay_template.png",
+      dimensions: dimensions || `${outputWidth}x${outputHeight} px`,
+      dataUrl,
+      source,
+      isBuiltin: false,
+    };
+    const builtins = savedOverlays.filter((item) => item.isBuiltin || item.source === "builtin");
+    const customs = savedOverlays.filter(
+      (item) => !item.isBuiltin && item.source !== "builtin" && item.dataUrl !== dataUrl
+    );
+    persistCustomOverlays([...builtins, newItem, ...customs]);
+  };
+
+  // Menyesuaikan gambar overlay ke ukuran rasio Live Preview yang sedang aktif (outputWidth x outputHeight)
+  const fitOverlayToActiveRatio = (
+    sourceDataUrl: string,
+    targetW: number,
+    targetH: number
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const offscreen = document.createElement("canvas");
+          offscreen.width = targetW;
+          offscreen.height = targetH;
+          const ctx = offscreen.getContext("2d");
+          if (!ctx) {
+            resolve(sourceDataUrl);
+            return;
+          }
+          ctx.clearRect(0, 0, targetW, targetH);
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          resolve(offscreen.toDataURL("image/png"));
+        } catch {
+          resolve(sourceDataUrl);
+        }
+      };
+      img.onerror = () => resolve(sourceDataUrl);
+      img.src = sourceDataUrl;
+    });
+  };
+
+  const handleSelectAlbumItem = async (item: OverlayAlbumItem) => {
+    const fittedUrl = await fitOverlayToActiveRatio(item.dataUrl, outputWidth, outputHeight);
+    const dims = `${outputWidth}x${outputHeight} px`;
+    if (onOverlayApplied) {
+      onOverlayApplied(fittedUrl, item.name, dims);
+    }
+  };
+
+  const handleDeleteAlbumItem = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const target = savedOverlays.find((item) => item.id === id);
+    if (!target || target.isBuiltin || target.source === "builtin") {
+      return;
+    }
+    const next = savedOverlays.filter((item) => item.id !== id);
+    persistCustomOverlays(next);
+
+    if (target.dataUrl === overlayUrl && onOverlayApplied) {
+      onOverlayApplied("", "", "");
+    }
+  };
 
   const ratios = [
     { ratio: "9:16", label: "PORTRAIT", w: 1080, h: 1920 },
@@ -46,13 +297,12 @@ export default function OutputOverlay({
     { ratio: "4:3", label: "ORIGINAL 4:3 (NO CROP)", w: 1600, h: 1200 },
   ];
 
-  const handleSelectRatio = (item: typeof ratios[0]) => {
+  const handleSelectRatio = (item: (typeof ratios)[0]) => {
     setAspectRatio(item.ratio);
     setRatioLabel(item.label);
     setOutputWidth(item.w);
     setOutputHeight(item.h);
 
-    // Kirim perubahan rasio ke parent component agar Live Preview ikut berubah
     if (onRatioChange) {
       onRatioChange(item.ratio, item.w, item.h);
     }
@@ -72,13 +322,16 @@ export default function OutputOverlay({
       const img = new Image();
       img.onload = () => {
         const dataUrl = event.target?.result as string;
+        const dims = `${img.width}x${img.height} px`;
+        addOverlayToAlbum(dataUrl, file.name, dims, "upload");
         if (onOverlayApplied) {
-          onOverlayApplied(dataUrl, file.name, `${img.width}x${img.height} px`);
+          onOverlayApplied(dataUrl, file.name, dims);
         }
       };
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const removeOverlay = () => {
@@ -144,9 +397,12 @@ export default function OutputOverlay({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dataUrl = canvas.toDataURL("image/png");
+    const dims = `${outputWidth}x${outputHeight} px`;
+
+    addOverlayToAlbum(dataUrl, "custom_editor_frame.png", dims, "editor");
 
     if (onOverlayApplied) {
-      onOverlayApplied(dataUrl, "custom_editor_frame.png", `${outputWidth}x${outputHeight} px`);
+      onOverlayApplied(dataUrl, "custom_editor_frame.png", dims);
     }
 
     setIsEditorOpen(false);
@@ -300,9 +556,11 @@ export default function OutputOverlay({
         )}
       </div>
 
+      {/* INFORMASI UKURAN FORMAT OUTPUT */}
       <div className="pt-2 space-y-3 text-xs text-gray-300">
         <p>
-          Your current output configuration is <strong className="text-white font-bold">select-by-concept</strong>.
+          Your current output configuration is{" "}
+          <strong className="text-white font-bold">select-by-concept</strong> ({ratioLabel}).
         </p>
         <p className="text-gray-400">Upload a frame with the appropriate size.</p>
 
@@ -327,6 +585,78 @@ export default function OutputOverlay({
         <p className="text-amber-400 font-semibold pt-1">
           Ensure the uploaded PNG file matches the output format size.
         </p>
+      </div>
+
+      {/* COLUMN BARU DI BAWAH: SCREEN OVERLAY TEMPLATE */}
+      <div className="rounded-xl bg-[#0b061a] border border-purple-500/30 p-3.5 shadow-[0_0_20px_rgba(139,53,255,0.12)] space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold tracking-wider uppercase text-purple-300">
+            SCREEN OVERLAY TEMPLATE
+          </span>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10">
+            {aspectRatio} • {outputWidth}x{outputHeight} px
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {savedOverlays.map((item) => {
+            const isSelected = overlayUrl === item.dataUrl;
+            const canDelete = !item.isBuiltin && item.source !== "builtin";
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleSelectAlbumItem(item)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectAlbumItem(item);
+                  }
+                }}
+                style={{ aspectRatio: `${outputWidth} / ${outputHeight}` }}
+                className={`group relative w-full rounded-lg overflow-hidden border transition-all cursor-pointer bg-[#130d22] ${
+                  isSelected
+                    ? "border-purple-400 ring-2 ring-purple-500/50"
+                    : "border-white/10 hover:border-purple-500/60"
+                }`}
+                title={`${item.name} — Klik untuk pasang sesuai rasio ${aspectRatio}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.dataUrl}
+                  alt={item.name}
+                  className="w-full h-full object-fill"
+                />
+
+                {isSelected && (
+                  <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center shadow">
+                    <Check className="w-3 h-3 stroke-[3]" />
+                  </div>
+                )}
+
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteAlbumItem(e, item.id)}
+                    className="opacity-0 group-hover:opacity-100 absolute top-1.5 right-1.5 w-6 h-6 rounded bg-black/80 hover:bg-rose-600 text-zinc-200 hover:text-white flex items-center justify-center transition-opacity cursor-pointer"
+                    title="Hapus overlay"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                <div className="absolute inset-x-0 bottom-0 px-2 py-1 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                  <p className="text-[10px] font-medium text-white truncate">{item.name}</p>
+                  <p className="text-[9px] text-purple-200/80 truncate">
+                    {canDelete ? (item.source === "editor" ? "Editor" : "Upload") : "Bawaan"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {overlayUrl && (
@@ -366,7 +696,7 @@ export default function OutputOverlay({
           <span>UPLOAD PNG OVERLAY</span>
         </button>
 
-                <button
+        <button
           type="button"
           onClick={() => setIsAdvancedEditorOpen(true)}
           className="flex-1 sm:flex-none min-w-[200px] flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/40 hover:border-purple-400 text-purple-300 hover:text-white text-xs font-bold tracking-wider uppercase transition-all cursor-pointer active:scale-95"
@@ -379,7 +709,8 @@ export default function OutputOverlay({
       <ModalOverlayEditor
         isOpen={isAdvancedEditorOpen}
         onClose={() => setIsAdvancedEditorOpen(false)}
-        onApply={(dataUrl, name, dimensions) => {
+        onApply={(dataUrl: string, name: string, dimensions: string) => {
+          addOverlayToAlbum(dataUrl, name, dimensions, "editor");
           if (onOverlayApplied) {
             onOverlayApplied(dataUrl, name, dimensions);
           }
@@ -387,7 +718,6 @@ export default function OutputOverlay({
         initialWidth={outputWidth}
         initialHeight={outputHeight}
       />
-
 
       {isEditorOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
