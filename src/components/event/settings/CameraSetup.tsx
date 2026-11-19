@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   ChevronLeft,
   Plug,
@@ -13,6 +13,9 @@ import {
   BatteryFull,
   ChevronDown,
   CircleCheck,
+  Loader2,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 
 interface CameraModel {
@@ -24,6 +27,8 @@ interface CameraModel {
   apertureIdx: number;
   isoIdx: number;
 }
+
+type SetupStage = "idle" | "loading" | "not_found" | "ready";
 
 const CAMERAS_DB: CameraModel[] = [
   { model: "Nikon Corporation D7000", shutterCount: 14820, battery: 92, firmware: "v1.04", shutterIdx: 3, apertureIdx: 3, isoIdx: 4 },
@@ -51,6 +56,9 @@ const WB_PROFILES: Record<string, { color: string; label: string }> = {
 };
 
 export default function CameraSetup() {
+  const [setupStage, setSetupStage] = useState<SetupStage>("idle");
+  const [detectionMessage, setDetectionMessage] = useState<string>("");
+
   const [isCameraConnected, setIsCameraConnected] = useState<boolean>(false);
   const [connectedCamera, setConnectedCamera] = useState<CameraModel | null>(null);
 
@@ -72,6 +80,7 @@ export default function CameraSetup() {
 
   const [doFlash, setDoFlash] = useState<boolean>(false);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const setupTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const showToast = (title: string, message: string) => {
     setToast({ title, message, visible: true });
@@ -110,13 +119,26 @@ export default function CameraSetup() {
     }
   };
 
-  useEffect(() => {
-    // Initial mount auto-connect simulation
-    const timer = setTimeout(() => {
-      connectDSLRHardware();
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+  const handleSetupCamera = () => {
+    if (setupTimerRef.current) clearTimeout(setupTimerRef.current);
+    setDetectionMessage("");
+    setSetupStage("loading");
+
+    // Simulasi pemindaian driver kamera ("Memuat...") lalu tampilkan konten setup kamera
+    setupTimerRef.current = setTimeout(() => {
+      const isDriverDetected = true; // Simulasi: ubah ke false jika ingin menguji kondisi tidak terdeteksi
+      if (isDriverDetected) {
+        connectDSLRHardware();
+        setSetupStage("ready");
+      } else {
+        setIsCameraConnected(false);
+        setConnectedCamera(null);
+        setPtpStatus("PTP/IP Engine: Idle");
+        setDetectionMessage("Kamera tidak terdeteksi");
+        setSetupStage("not_found");
+      }
+    }, 2000);
+  };
 
   // Calculate Exposure
   const ev = SHUTTER_EV_VALUES[shutterIdx] + APERTURE_EV_VALUES[apertureIdx] + ISO_EV_VALUES[isoIdx];
@@ -187,6 +209,62 @@ export default function CameraSetup() {
       showToast("Wizard Applied", "Optimal Photobooth Flash settings applied (1/125, f/8, ISO 400).");
     }, 600);
   };
+
+  const renderToast = () => (
+    <div
+      className={`fixed top-16 right-6 bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-lg shadow-xl transition-all duration-300 z-50 flex items-center gap-3 ${
+        toast.visible ? "translate-y-0 opacity-100" : "translate-y-[-100px] opacity-0 pointer-events-none"
+      }`}
+    >
+      <CircleCheck className="text-blue-400 w-5 h-5 flex-shrink-0" />
+      <div>
+        <div className="text-xs font-bold">{toast.title}</div>
+        <div className="text-xs text-gray-300">{toast.message}</div>
+      </div>
+    </div>
+  );
+
+  if (setupStage !== "ready") {
+    return (
+      <div className="text-gray-200 h-screen overflow-hidden flex flex-col font-['Inter',sans-serif] select-none">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+          {setupStage === "idle" && (
+            <button
+              onClick={handleSetupCamera}
+              className="bg-purple-600 hover:bg-purple-800 text-white font-medium text-sm px-6 py-2.5 rounded-lg shadow-lg transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Setup Kamera</span>
+            </button>
+          )}
+
+          {setupStage === "loading" && (
+            <div className="flex flex-col items-center gap-3 text-gray-300">
+              <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+              <span className="text-sm font-medium">Deteksi Kamera...</span>
+            </div>
+          )}
+
+          {setupStage === "not_found" && (
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
+                <AlertCircle className="w-4 h-4" />
+                <span>{detectionMessage || "Kamera tidak terdeteksi"}</span>
+              </div>
+              <button
+                onClick={handleSetupCamera}
+                className="bg-[#3a3b3c] hover:bg-[#48494b] text-gray-200 border border-gray-600 text-xs font-medium px-4 py-2 rounded-lg transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Setup Kamera</span>
+              </button>
+            </div>
+          )}
+        </div>
+        {renderToast()}
+      </div>
+    );
+  }
 
   return (
     <div className="text-gray-200 h-screen overflow-hidden flex flex-col font-['Inter',sans-serif] select-none">
@@ -578,18 +656,7 @@ export default function CameraSetup() {
         </main>
       </div>
 
-      {/* Notification Toast Modal */}
-      <div
-        className={`fixed top-16 right-6 bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-lg shadow-xl transition-all duration-300 z-50 flex items-center gap-3 ${
-          toast.visible ? "translate-y-0 opacity-100" : "translate-y-[-100px] opacity-0"
-        }`}
-      >
-        <CircleCheck className="text-blue-400 w-5 h-5 flex-shrink-0" />
-        <div>
-          <div className="text-xs font-bold">{toast.title}</div>
-          <div className="text-xs text-gray-300">{toast.message}</div>
-        </div>
-      </div>
+      {renderToast()}
     </div>
   );
 }
