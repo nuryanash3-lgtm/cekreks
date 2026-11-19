@@ -2808,7 +2808,7 @@ export default function ScreenEditor() {
           <div className="flex-1 flex overflow-hidden relative">
             {/* SIDEBAR */}
             <aside
-              className={`bg-[#2b2b2b] border-r border-[#444] flex flex-col transition-all duration-300 z-10 relative ${
+              className={`bg-[#0f0f12] border-r border-[#444] flex flex-col transition-all duration-300 z-10 relative ${
                 sidebarOpen ? "w-full md:w-[340px] lg:w-[370px]" : "w-0 overflow-hidden"
               }`}
             >
@@ -3130,7 +3130,7 @@ export default function ScreenEditor() {
             </aside>
 
             {/* PREVIEW CANVAS */}
-            <main className="flex-1 bg-[#1e1e1e] flex flex-col relative overflow-hidden">
+            <main className="flex-1 bg-[#0f0f12] flex flex-col relative overflow-hidden">
               <div className="p-4 flex justify-end items-center gap-4 z-10">
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-300">
