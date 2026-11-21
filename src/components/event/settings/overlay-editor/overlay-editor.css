@@ -1,0 +1,113 @@
+/* Custom Scrollbar for Dark UI */
+.overlay-editor-root ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.overlay-editor-root ::-webkit-scrollbar-track {
+  background: #18181b;
+}
+.overlay-editor-root ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+.overlay-editor-root ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Dotted Workspace Background */
+.canvas-workspace {
+  background-color: #161618;
+  background-image: radial-gradient(#323236 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+/* Prevent browser touch scroll/zoom hijack while dragging/resizing canvas elements */
+.canvas-element-item {
+  touch-action: none;
+}
+
+/* Custom Range Input */
+.overlay-editor-root input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3f3f46;
+  height: 4px;
+  border-radius: 2px;
+}
+.overlay-editor-root input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #e4e4e7;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.overlay-editor-root input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #a855f7;
+}
+
+/* Selected Element Outline & Handles */
+.element-selected {
+  outline: 1.5px solid #9333ea !important;
+}
+.resize-handle {
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border: 1.5px solid #9333ea;
+  position: absolute;
+  z-index: 50;
+  display: none;
+}
+.element-selected .resize-handle {
+  display: block;
+}
+.handle-nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+.handle-ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+.handle-sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: nesw-resize;
+}
+.handle-se {
+  bottom: -4px;
+  right: -4px;
+  cursor: nwse-resize;
+}
+
+/* Print Media Query for Print Test Copy */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .overlay-editor-root,
+  #workspace-area,
+  #canvas-scaler {
+    overflow: visible !important;
+    transform: none !important;
+  }
+  #print-canvas,
+  #print-canvas * {
+    visibility: visible !important;
+  }
+  #print-canvas {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
+  }
+}
