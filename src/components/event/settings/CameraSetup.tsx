@@ -378,64 +378,6 @@ export default function CameraSetup() {
 
   return (
     <div className="text-gray-200 h-screen overflow-hidden flex flex-col select-none font-sans">
-      {/* Global Styles untuk Font Geometris & Custom Slider */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
-
-        body {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 1.05rem;
-        }
-
-        .tech-heading {
-          font-family: 'Orbitron', sans-serif;
-          letter-spacing: 0.08em;
-        }
-
-        input[type='range'].purple-slider {
-          -webkit-appearance: none;
-          width: 100%;
-          background: transparent;
-        }
-
-        input[type='range'].purple-slider:focus {
-          outline: none;
-        }
-
-        input[type='range'].purple-slider::-webkit-slider-runnable-track {
-          width: 100%;
-          height: 6px;
-          cursor: pointer;
-          background: #3a3b3c;
-          border-radius: 3px;
-        }
-
-        input[type='range'].purple-slider::-webkit-slider-thumb {
-          height: 20px;
-          width: 20px;
-          border-radius: 50%;
-          background: #9333ea;
-          cursor: pointer;
-          -webkit-appearance: none;
-          margin-top: -7px;
-          box-shadow: 0 0 12px rgba(147, 51, 234, 0.7);
-          transition: transform 0.1s ease, background-color 0.2s ease;
-        }
-
-        input[type='range'].purple-slider::-webkit-slider-thumb:hover {
-          transform: scale(1.25);
-          background: #a855f7;
-        }
-
-        @keyframes cameraFlash {
-          0% { opacity: 1; background-color: white; }
-          100% { opacity: 0; background-color: transparent; }
-        }
-
-        .do-flash {
-          animation: cameraFlash 0.4s ease-out forwards;
-        }
-      `}</style>
 
       {/* Flash Overlay */}
       <div
