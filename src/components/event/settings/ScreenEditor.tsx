@@ -811,7 +811,7 @@ export default function ScreenEditor() {
           <button
             type="button"
             onClick={() => setEditorTab("ai")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-display font-semibold uppercase tracking-wider transition cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-display font-semibold uppercase tracking-wider transition cursor-pointer ${
               editorTab === "ai"
                 ? "bg-[#9333ea] text-white shadow-[0_0_15px_rgba(147,51,234,0.4)]"
                 : "bg-[#1e1e26] text-gray-300 hover:bg-[#272732]"
@@ -823,9 +823,9 @@ export default function ScreenEditor() {
           <button
             type="button"
             onClick={() => setEditorTab("konven")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-display font-semibold uppercase tracking-wider transition cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-display font-semibold uppercase tracking-wider transition cursor-pointer ${
               editorTab === "konven"
-                ? "bg-[#8e24aa] text-white shadow-md"
+                ? "bg-[#9333ea] text-white shadow-[0_0_15px_rgba(147,51,234,0.4)]"
                 : "bg-[#1e1e26] text-gray-300 hover:bg-[#272732]"
             }`}
           >
@@ -2786,7 +2786,7 @@ export default function ScreenEditor() {
                 type="button"
                 onClick={startSimulation}
                 disabled={isSimulating}
-                className="flex items-center gap-1.5 bg-[#8e24aa] hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded shadow transition"
+                className="flex items-center gap-1.5 bg-[#8e24aa] hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow transition"
               >
                 {isSimulating ? (
                   <Loader2 size={14} className="animate-spin" />

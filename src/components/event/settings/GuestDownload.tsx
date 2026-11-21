@@ -161,7 +161,6 @@ export default function GuestDownload({
 
       <div className="border-b border-white/10 pb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-purple-400 uppercase">GUEST DOWNLOAD PAGE SETTINGS</h2>
           <p className="text-xs text-zinc-400 mt-1">This is the page guests see on their mobile devices when scanning QR code.</p>
         </div>
         <button onClick={resetToDefaults} className="text-xs text-zinc-400 hover:text-purple-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
