@@ -487,11 +487,6 @@ export default function ConceptsSettingsPage() {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 py-4 text-center text-xs text-gray-500 border-t border-gray-900/60">
-        &copy; 2026 Concepts Setting System • Created for AI Photo &amp; Interactive Booth Management
-      </footer>
-
       {/* MODAL 1: ADD CONCEPT SELECTION */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
