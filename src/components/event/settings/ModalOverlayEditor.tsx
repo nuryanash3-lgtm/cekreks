@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useOverlayEditor } from './overlay-editor/useOverlayEditor';
+import { useOverlayEditor } from '../../../types/useOverlayEditor';
 import { OverlayEditorToolbar } from './overlay-editor/OverlayEditorToolbar';
 import {
   OverlayEditorLeftSidebar,
