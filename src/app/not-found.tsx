@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Ghost, Home, ArrowLeft } from "lucide-react";
+import { Home, ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
   return (
     <main className="min-h-screen bg-[#0d071a] flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Efek Glow / Cahaya Latar Belakang */}
       <div className="absolute w-[300px] h-[300px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none right-10 bottom-10" />
-
       <div className="max-w-md w-full text-center relative z-10 space-y-6">
-
-        {/* Kode Error 404 */}
         <div>
           <span className="text-xs font-bold tracking-widest uppercase bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
             Error 404
@@ -25,7 +21,6 @@ export default function NotFound() {
           </p>
         </div>
 
-        {/* Tombol Aksi Navigasi */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <Link
             href="/"
@@ -33,8 +28,7 @@ export default function NotFound() {
           >
             <Home className="w-4 h-4" />
             Kembali ke Beranda
-          </Link>
-          
+          </Link>          
           <button
             onClick={() => window.history.back()}
             className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm bg-[#180d38] text-gray-300 border border-white/10 hover:border-cyan-400/40 hover:text-white transition duration-300 flex items-center justify-center gap-2 cursor-pointer"
@@ -43,7 +37,6 @@ export default function NotFound() {
             Halaman Sebelumnya
           </button>
         </div>
-
       </div>
     </main>
   );

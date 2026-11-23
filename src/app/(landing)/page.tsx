@@ -1,11 +1,9 @@
-import Navbar from "@/components/landing/layout/Navbar";
 import HeroSlider from "@/components/landing/home/HeroSlider";
 import ExperienceHero from "@/components/landing/home/ExperienceHero";
 import AiPreviewContent from "@/components/landing/home/AiPreviewContent";
 import ServiceSection from "@/components/landing/home/ServicesSection";
 import PricingSection from "@/components/landing/home/PricingSection";
 import { SlideItem } from "@/types";
-import Footer from "@/components/landing/layout/Footer";
 import ContactSection from "@/components/landing/home/ContactSection";
 
 const HERO_SLIDES: SlideItem[] = [
@@ -46,7 +44,6 @@ const HERO_SLIDES: SlideItem[] = [
 export default function HomePage() {
   return (
     <div id="beranda" className="min-h-screen bg-[#0e071e] text-white flex flex-col items-center font-sans scroll-mt-18">     
-      {/* Container Konten Utama Vertikal (Column) */}
       <main className="w-full flex flex-col items-center gap-4 sm:gap-16 px-4 sm:px-6 pt-2 pb-20">
         <HeroSlider slides={HERO_SLIDES} />
         <ExperienceHero />

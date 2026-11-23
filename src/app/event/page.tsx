@@ -16,7 +16,6 @@ interface EventItem {
 }
 
 export default function EventDashboardPage() {
-  // 1. Inisialisasi awal dengan data statis dari JSON (agar server & client render pertama sama persis)
   const [events, setEvents] = useState<EventItem[]>(() => {
     return akunData.events.map((ev) => ({ ...ev, isPublic: ev.isPublic ?? false }));
   });
