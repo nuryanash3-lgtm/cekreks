@@ -1,35 +1,26 @@
-'use client';
+import React, { Suspense } from 'react';
+import AdminShell from '@/components/admin/AdminShell';
+import { requireSession } from '@/lib/auth-guard';
 
-import React, { useState } from 'react';
-import Sidebar from '@/components/admin/Sidebar';
+async function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+  await requireSession(['admin']);
+  return <AdminShell>{children}</AdminShell>;
+}
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
   return (
-    <div className="min-h-screen bg-[#07050d] text-white flex font-sans">
-      
-      {/* Sidebar dengan State Collapse */}
-      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-
-      {/* MAIN CONTENT WRAPPER */}
-      {/* Lebar kiri otomatis menyesuaikan: pl-20 saat ciut, pl-64 saat melebar */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'pl-20' : 'pl-64'
-      }`}>
-        
-        {/* Dashboard Top Header */}
-
-        {/* Page Content dengan lebar maksimal mengikuti sisa ruang */}
-        <main className="flex-1 p-6 md:p-10 max-w-[1600px] w-full mx-auto">
-          {children}
-        </main>
-      </div>
-
-    </div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#07050d] text-gray-400 flex items-center justify-center text-sm">
+          Memverifikasi sesi admin...
+        </div>
+      }
+    >
+      <AdminAuthGuard>{children}</AdminAuthGuard>
+    </Suspense>
   );
 }

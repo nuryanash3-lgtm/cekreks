@@ -147,36 +147,43 @@ export default function PhotoboothLaunchingPage() {
   const [eventTitle, setEventTitle] = useState('Memuat event...');
 
   useEffect(() => {
-    const savedEvents = localStorage.getItem('cekreks_events_state');
-
-    if (!savedEvents) {
-      setEventTitle('Event tidak ditemukan');
+    if (!kode) {
       return;
     }
 
-    try {
-      const parsed: unknown = JSON.parse(savedEvents);
+    let cancelled = false;
 
-      if (!Array.isArray(parsed)) {
-        throw new Error('Format data event tidak valid');
+    async function loadEvent() {
+      try {
+        const res = await fetch('/api/events/' + encodeURIComponent(kode), {
+          cache: 'no-store',
+        });
+        const data = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          event?: { title?: string };
+        } | null;
+
+        if (cancelled) return;
+
+        if (!res.ok || !data?.ok || !data.event?.title) {
+          setEventTitle('Event tidak ditemukan');
+          return;
+        }
+
+        setEventTitle(data.event.title);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Gagal memuat data event dari server', error);
+          setEventTitle('Event tidak ditemukan');
+        }
       }
-
-      const event = parsed.find(
-        (item): item is { code: string; title: string } =>
-          typeof item === 'object' &&
-          item !== null &&
-          'code' in item &&
-          typeof item.code === 'string' &&
-          'title' in item &&
-          typeof item.title === 'string' &&
-          item.code.toUpperCase() === kode.toUpperCase()
-      );
-
-      setEventTitle(event?.title ?? 'Event tidak ditemukan');
-    } catch (error) {
-      console.error('Gagal membaca data event dari localStorage', error);
-      setEventTitle('Event tidak ditemukan');
     }
+
+    loadEvent();
+
+    return () => {
+      cancelled = true;
+    };
   }, [kode]);
 
   // --- FULLSCREEN LISTENER ---

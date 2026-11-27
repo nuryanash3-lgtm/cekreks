@@ -1,5 +1,16 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import NavbarEvent from '@/components/event/NavbarEvent';
+import { requireSession } from '@/lib/auth-guard';
+
+async function SettingsAuthGuard({ children }: { children: React.ReactNode }) {
+  await requireSession(['admin', 'user']);
+  return (
+    <>
+      <NavbarEvent />
+      <main className="flex-1">{children}</main>
+    </>
+  );
+}
 
 export default function SettingLayout({
   children,
@@ -7,13 +18,14 @@ export default function SettingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      {/* Navbar khusus halaman publik */}
-      <NavbarEvent />
-
-      {/* Konten halaman publik (Beranda & Layanan) */}
-      <main className="flex-1">{children}</main>
-
-    </>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070312] text-gray-400 flex items-center justify-center text-sm">
+          Memverifikasi akses pengaturan...
+        </div>
+      }
+    >
+      <SettingsAuthGuard>{children}</SettingsAuthGuard>
+    </Suspense>
   );
 }

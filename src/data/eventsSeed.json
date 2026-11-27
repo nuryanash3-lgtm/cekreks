@@ -1,14 +1,4 @@
 {
-  "admin": {
-    "email": "admin@cekreks.id",
-    "password": "password123",
-    "redirectUrl": "/admin"
-  },
-  "user": {
-    "email": "user@cekreks.id",
-    "password": "password123",
-    "redirectUrl": "/event"
-  },
   "events": [
     {
       "code": "4S03UZ",

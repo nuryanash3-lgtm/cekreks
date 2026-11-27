@@ -1,29 +1,76 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Plus, Copy, Play, Image as ImageIcon, Download, Settings,
   Database, Trash2, Coins, Key, CheckCircle2, X, LogOut, AlertTriangle,
   User2
 } from 'lucide-react';
-import akunData from '@/data/daftarAkun.json';
+
+interface EventApiRecord {
+  id: string;
+  ownerId: string;
+  code: string;
+  title: string;
+  description: string | null;
+  eventDate: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  companyName: string | null;
+  city: string | null;
+  country: string | null;
+  planName: string;
+  tokenBalance: number;
+  unlimitedUntil: string | null;
+}
 
 interface EventItem {
+  id: string;
   code: string;
   title: string;
   date: string;
   description: string;
-  isPublic?: boolean;
+  isPublic: boolean;
+}
+
+function formatEventDate(eventDate: string | null, createdAt: string): string {
+  const source = eventDate || createdAt;
+  const parsed = new Date(source);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toLocaleDateString('en-US');
+  }
+  return parsed.toLocaleDateString('en-US');
+}
+
+function mapApiEventToItem(ev: EventApiRecord): EventItem {
+  return {
+    id: ev.id,
+    code: ev.code,
+    title: ev.title,
+    date: formatEventDate(ev.eventDate, ev.createdAt),
+    description: ev.description || 'Semua bisa mengekspresikan disini',
+    isPublic: ev.isPublic,
+  };
 }
 
 export default function EventDashboardPage() {
-  const [events, setEvents] = useState<EventItem[]>(() => {
-    return akunData.events.map((ev) => ({ ...ev, isPublic: ev.isPublic ?? false }));
-  });
-
-  const [isMounted, setIsMounted] = useState(false); // <--- State penanda client sudah mount
-  const [kredit] = useState(198);
+  const router = useRouter();
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [kredit, setKredit] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // State untuk Modal & Form Buat Event Baru
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,29 +83,73 @@ export default function EventDashboardPage() {
   const [pendingEventCode, setPendingEventCode] = useState<string | null>(null);
   const [isCheckedAgreement, setIsCheckedAgreement] = useState(false);
 
-  // 2. Ambil data dari localStorage setelah komponen sukses dimuat di browser (Client-side only)
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  }, []);
+
   useEffect(() => {
-    setIsMounted(true);
-    if (typeof window !== 'undefined') {
-      const savedEvents = localStorage.getItem('cekreks_events_state');
-      if (savedEvents) {
-        try {
-          setEvents(JSON.parse(savedEvents));
-        } catch (e) {
-          console.error("Gagal memparsing data event dari localStorage", e);
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/events', { cache: 'no-store' });
+        if (res.status === 401) {
+          router.push('/?login=required');
+          return;
+        }
+
+        const data = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          error?: string;
+          user?: UserProfile;
+          events?: EventApiRecord[];
+        } | null;
+
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || 'Gagal memuat daftar event.');
+        }
+
+        if (cancelled) return;
+
+        setEvents(Array.isArray(data.events) ? data.events.map(mapApiEventToItem) : []);
+        if (data.user) {
+          setUserProfile(data.user);
+          setKredit(typeof data.user.tokenBalance === 'number' ? data.user.tokenBalance : 0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Gagal memuat data event dari server', error);
+          showToast(error instanceof Error ? error.message : 'Gagal memuat data event.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
         }
       }
     }
-  }, []);
 
-  // Simpan perubahan ke localStorage setiap kali state events berubah (setelah mounted)
-  useEffect(() => {
-    if (isMounted && typeof window !== 'undefined') {
-      localStorage.setItem('cekreks_events_state', JSON.stringify(events));
-    }
-  }, [events, isMounted]);
+    loadDashboard();
 
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+    return () => {
+      cancelled = true;
+    };
+  }, [router, showToast]);
 
   const handleAccountSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -81,93 +172,157 @@ export default function EventDashboardPage() {
     showToast('Form siap. Penyimpanan perubahan perlu dihubungkan ke backend.');
   };
 
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
-  };
-
   const handleCopyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     showToast(`${label} berhasil disalin!`);
   };
 
-  const handleToggleClick = (ev: EventItem) => {
+  const handleToggleClick = async (ev: EventItem) => {
     if (!ev.isPublic) {
       setPendingEventCode(ev.code);
       setIsCheckedAgreement(false);
       setIsPublicModalOpen(true);
-    } else {
-      setEvents(prev =>
-        prev.map(item => {
-          if (item.code === ev.code) {
-            showToast(`Event ${item.title} diset menjadi Private`);
-            return { ...item, isPublic: false };
-          }
-          return item;
-        })
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(ev.code)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        event?: EventApiRecord;
+      } | null;
+
+      if (!res.ok || !data?.ok || !data.event) {
+        throw new Error(data?.error || 'Gagal mengubah status event.');
+      }
+
+      const updated = mapApiEventToItem(data.event);
+      setEvents((prev) =>
+        prev.map((item) => (item.code === ev.code ? updated : item))
       );
+      showToast(`Event ${updated.title} diset menjadi Private`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal mengubah status event.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const confirmEnablePublic = () => {
-    if (!pendingEventCode) return;
+  const confirmEnablePublic = async () => {
+    if (!pendingEventCode || isSubmitting) return;
+    setIsSubmitting(true);
 
-    const newRandomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(pendingEventCode)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: true, regenerateCode: true }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        event?: EventApiRecord;
+      } | null;
 
-    setEvents(prev =>
-      prev.map(item => {
-        if (item.code === pendingEventCode) {
-          showToast(`Event ${item.title} diset menjadi Public dengan kode baru!`);
-          return {
-            ...item,
-            isPublic: true,
-            code: newRandomCode
-          };
-        }
-        return item;
-      })
-    );
+      if (!res.ok || !data?.ok || !data.event) {
+        throw new Error(data?.error || 'Gagal mengaktifkan Event Publik.');
+      }
 
-    setIsPublicModalOpen(false);
-    setPendingEventCode(null);
+      const updated = mapApiEventToItem(data.event);
+      setEvents((prev) =>
+        prev.map((item) => (item.code === pendingEventCode ? updated : item))
+      );
+      showToast(`Event ${updated.title} diset menjadi Public dengan kode baru!`);
+      setIsPublicModalOpen(false);
+      setPendingEventCode(null);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal mengaktifkan Event Publik.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteEvent = (code: string, title: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus event "${title}"?`)) {
-      setEvents(prev => prev.filter(ev => ev.code !== code));
+  const handleDeleteEvent = async (code: string, title: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus event "${title}"?`)) {
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(code)}`, {
+        method: 'DELETE',
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || 'Gagal menghapus event.');
+      }
+
+      setEvents((prev) => prev.filter((ev) => ev.code !== code));
       showToast(`Event ${title} berhasil dihapus!`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal menghapus event.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCreateEvent = (e: React.FormEvent) => {
+  const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEventTitle.trim()) {
       showToast('Nama event tidak boleh kosong!');
       return;
     }
 
-    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const currentDate = new Date().toLocaleDateString('en-US');
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    const newEvent: EventItem = {
-      code: randomCode,
-      title: newEventTitle.toUpperCase(),
-      date: currentDate,
-      description: newEventDesc || 'Semua bisa mengekspresikan disini',
-      isPublic: false,
-    };
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newEventTitle.trim().toUpperCase(),
+          description: newEventDesc.trim() || 'Semua bisa mengekspresikan disini',
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        event?: EventApiRecord;
+      } | null;
 
-    setEvents([newEvent, ...events]);
-    setIsModalOpen(false);
-    setNewEventTitle('');
-    setNewEventDesc('');
-    showToast(`Event ${newEvent.title} berhasil dibuat sebagai Private!`);
+      if (!res.ok || !data?.ok || !data.event) {
+        throw new Error(data?.error || 'Gagal membuat event baru.');
+      }
+
+      const created = mapApiEventToItem(data.event);
+      setEvents((prev) => [created, ...prev]);
+      setIsModalOpen(false);
+      setNewEventTitle('');
+      setNewEventDesc('');
+      showToast(`Event ${created.title} berhasil dibuat sebagai Private!`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal membuat event baru.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Mencegah render interaktif sebelum client siap (opsional, tapi aman untuk menghindari flash)
-  if (!isMounted) {
+  if (isLoading) {
     return null;
   }
 
@@ -222,7 +377,7 @@ export default function EventDashboardPage() {
                 <input
                   id="account-name"
                   name="name"
-                  defaultValue="User"
+                  defaultValue={userProfile?.name ?? 'User'}
                   className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
                 />
               </div>
@@ -234,7 +389,7 @@ export default function EventDashboardPage() {
                 <input
                   id="company-name"
                   name="companyName"
-                  defaultValue="CekreksID"
+                  defaultValue={userProfile?.companyName ?? 'CekreksID'}
                   className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
                 />
               </div>
@@ -247,7 +402,7 @@ export default function EventDashboardPage() {
                   <input
                     id="account-city"
                     name="city"
-                    defaultValue="Bandung"
+                    defaultValue={userProfile?.city ?? 'Bandung'}
                     className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
                   />
                 </div>
@@ -258,7 +413,7 @@ export default function EventDashboardPage() {
                   <input
                     id="account-country"
                     name="country"
-                    defaultValue="Indonesia"
+                    defaultValue={userProfile?.country ?? 'Indonesia'}
                     className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
                   />
                 </div>
@@ -374,9 +529,9 @@ export default function EventDashboardPage() {
               </button>
               <button
                 type="button"
-                disabled={!isCheckedAgreement}
+                disabled={!isCheckedAgreement || isSubmitting}
                 onClick={confirmEnablePublic}
-                className={`px-5 py-2 text-xs font-bold uppercase rounded-xl transition ${isCheckedAgreement
+                className={`px-5 py-2 text-xs font-bold uppercase rounded-xl transition ${isCheckedAgreement && !isSubmitting
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 cursor-pointer'
                   : 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50'
                   }`}
@@ -440,7 +595,8 @@ export default function EventDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer disabled:opacity-50"
                 >
                   Simpan Event
                 </button>
@@ -457,7 +613,7 @@ export default function EventDashboardPage() {
             DASHBOARD
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Selamat datang kembali, <span className="text-purple-400 font-semibold">User</span>
+            Selamat datang kembali, <span className="text-purple-400 font-semibold">{userProfile?.name ?? 'User'}</span>
           </p>
         </div>
 
@@ -504,7 +660,12 @@ export default function EventDashboardPage() {
           </button>
 
           <button
-            onClick={() => (window.location.href = "/")}
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              router.push('/');
+              router.refresh();
+            }}
+            aria-label="Logout"
             className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-rose-500 text-gray-300 hover:text-rose-400 hover:scale-105 transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
@@ -521,7 +682,7 @@ export default function EventDashboardPage() {
         <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
           <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">Paket Saat Ini</span>
           <div className="text-3xl font-black mt-3 bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent italic tracking-wider">
-            Free
+            {userProfile?.planName ?? 'Free'}
           </div>
         </div>
         <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
@@ -582,7 +743,7 @@ export default function EventDashboardPage() {
 
         {/* LIST EVENT CARDS */}
         {events.map((ev) => (
-          <div key={ev.code} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-2xl hover:border-purple-500/30 transition">
+          <div key={ev.id} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-2xl hover:border-purple-500/30 transition">
             <div>
               {/* Header Card */}
               <div className="flex items-center justify-between mb-1">
@@ -597,6 +758,7 @@ export default function EventDashboardPage() {
                 <span className="text-[11px] font-bold tracking-wider text-gray-300 uppercase">Public Event</span>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={() => handleToggleClick(ev)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${ev.isPublic ? 'bg-gradient-to-r from-pink-500 to-purple-600' : 'bg-gray-700'
                     }`}
@@ -622,7 +784,7 @@ export default function EventDashboardPage() {
                     </button>
                   </div>
                   <button
-                    onClick={() => handleCopyText(`https://cekreks.id/event/${ev.code}`, 'URL Event')}
+                    onClick={() => handleCopyText(typeof window !== 'undefined' ? `${window.location.origin}/event/${ev.code}` : `https://cekreks.id/event/${ev.code}`, 'URL Event')}
                     className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition cursor-pointer"
                   >
                     <Copy className="w-3.5 h-3.5 text-purple-400" /> Copy URL
@@ -647,7 +809,7 @@ export default function EventDashboardPage() {
                 <button
                   onClick={() => {
                     showToast(`Membuka pengaturan: ${ev.title}`);
-                    window.location.href = `/event/${ev.code}/settings`
+                    router.push(`/event/${ev.code}/settings`);
                   }}
                   className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white cursor-pointer"
                 >

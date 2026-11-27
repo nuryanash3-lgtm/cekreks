@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     ChevronDown,
     Globe,
@@ -269,7 +270,61 @@ export default function Navbar() {
                         document.body
                     )}
             </header>
-            <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+            <NavbarLoginModal
+                manualOpen={isLoginOpen}
+                onCloseManual={() => setIsLoginOpen(false)}
+            />
         </>
+    );
+}
+
+function NavbarLoginModal({
+    manualOpen,
+    onCloseManual,
+}: {
+    manualOpen: boolean;
+    onCloseManual: () => void;
+}) {
+    return (
+        <Suspense fallback={null}>
+            <LoginModalWithParams
+                manualOpen={manualOpen}
+                onCloseManual={onCloseManual}
+            />
+        </Suspense>
+    );
+}
+
+function LoginModalWithParams({
+    manualOpen,
+    onCloseManual,
+}: {
+    manualOpen: boolean;
+    onCloseManual: () => void;
+}) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const loginRequired = searchParams.get("login") === "required";
+    const queryKey = searchParams.toString();
+    const [dismissedQuery, setDismissedQuery] = useState<string | null>(null);
+
+    const isRedirectOpen = loginRequired && dismissedQuery !== queryKey;
+    const isOpen = manualOpen || isRedirectOpen;
+    const notice = isRedirectOpen
+        ? "Silakan login terlebih dahulu untuk mengakses halaman yang diminta."
+        : null;
+
+    return (
+        <LoginModal
+            isOpen={isOpen}
+            notice={notice}
+            onClose={() => {
+                onCloseManual();
+                if (loginRequired) {
+                    setDismissedQuery(queryKey);
+                    router.replace("/");
+                }
+            }}
+        />
     );
 }
