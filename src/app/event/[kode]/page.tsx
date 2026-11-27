@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import NextImage from 'next/image';
 import { Orbitron, Inter } from 'next/font/google';
 import { useParams } from 'next/navigation';
 import {
@@ -114,6 +115,16 @@ const INITIAL_GALLERY: GalleryPhoto[] = [
   },
 ];
 
+function triggerPhotoDownload(url: string, conceptName: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  const slug = conceptName.toLowerCase().replace(/\s+/g, '-');
+  a.download = `cekreks-${slug}-${Date.now()}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 export default function PhotoboothLaunchingPage() {
   // --- STATE NAVIGASI & UI ---
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('opening');
@@ -208,15 +219,19 @@ export default function PhotoboothLaunchingPage() {
   };
 
   // --- CLEANUP TIMERS & CAMERA ---
-  const clearCountdownTimer = useCallback(() => {
+  const clearCountdownInterval = useCallback(() => {
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
     }
-    setCountdown(null);
   }, []);
 
-  const stopCamera = useCallback(() => {
+  const clearCountdownTimer = useCallback(() => {
+    clearCountdownInterval();
+    setCountdown(null);
+  }, [clearCountdownInterval]);
+
+  const releaseMediaTracks = useCallback(() => {
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
@@ -224,8 +239,12 @@ export default function PhotoboothLaunchingPage() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    setIsCameraReady(false);
   }, []);
+
+  const stopCamera = useCallback(() => {
+    releaseMediaTracks();
+    setIsCameraReady(false);
+  }, [releaseMediaTracks]);
 
   const startCamera = useCallback(async () => {
     stopCamera();
@@ -261,21 +280,75 @@ export default function PhotoboothLaunchingPage() {
 
   // --- EFEK LIFECYCLE KAMERA BERDASARKAN SCREEN ---
   useEffect(() => {
-    if (currentScreen === 'capture') {
-      startCamera();
-    } else {
-      stopCamera();
-      clearCountdownTimer();
+    if (currentScreen !== 'capture') {
+      releaseMediaTracks();
+      clearCountdownInterval();
+      return;
     }
 
+    let cancelled = false;
+
+    async function initCamera() {
+      releaseMediaTracks();
+
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        await Promise.resolve();
+        if (!cancelled) {
+          setCameraError('Browser does not support webcam access.');
+        }
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: false,
+        });
+
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        mediaStreamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          if (!cancelled) {
+            setCameraError(null);
+            setIsCameraReady(true);
+          }
+        }
+      } catch (err: unknown) {
+        console.warn('Camera Access Failed:', err);
+        if (!cancelled) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : 'Failed to access camera or permission denied.';
+          setCameraError(message);
+          setIsCameraReady(false);
+        }
+      }
+    }
+
+    void initCamera();
+
     return () => {
-      stopCamera();
-      clearCountdownTimer();
+      cancelled = true;
+      releaseMediaTracks();
+      clearCountdownInterval();
     };
-  }, [currentScreen, startCamera, stopCamera, clearCountdownTimer]);
+  }, [currentScreen, releaseMediaTracks, clearCountdownInterval]);
 
   // --- HANDLER NAVIGASI ---
   const navigateTo = (target: ScreenType) => {
+    if (currentScreen === 'capture' && target !== 'capture') {
+      stopCamera();
+      clearCountdownTimer();
+      setCameraError(null);
+    }
     setPreviousScreen(currentScreen);
     setCurrentScreen(target);
   };
@@ -434,15 +507,9 @@ export default function PhotoboothLaunchingPage() {
     }
   };
 
-  const handleDownloadPhoto = (url: string, conceptName: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    const slug = conceptName.toLowerCase().replace(/\s+/g, '-');
-    a.download = `cekreks-${slug}-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+  const handleDownloadPhoto = useCallback((url: string, conceptName: string) => {
+    triggerPhotoDownload(url, conceptName);
+  }, []);
 
   return (
     <div
@@ -668,10 +735,12 @@ export default function PhotoboothLaunchingPage() {
                       className={`carousel-card absolute w-64 md:w-80 h-[360px] md:h-[420px] rounded-2xl overflow-hidden cursor-pointer shadow-2xl flex flex-col justify-end p-4 border ${isCenter ? 'neon-border-purple' : 'border-white/10'
                         }`}
                     >
-                      <img
+                      <NextImage
                         src={concept.image}
                         alt={concept.title}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 256px, 320px"
+                        className="object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
                       <div className="relative z-10 text-center space-y-1">
@@ -777,10 +846,13 @@ export default function PhotoboothLaunchingPage() {
               {/* Captured Result Preview Overlay */}
               {capturedImageData && (
                 <div className="absolute inset-0 bg-black/90 z-20 flex flex-col items-center justify-center p-4">
-                  <img
+                  <NextImage
                     src={capturedImageData}
                     alt="Captured preview"
-                    className={`max-h-[75%] rounded-lg border border-purple-500/50 mb-4 object-contain ${activeConcept.cssFilterClass}`}
+                    width={1280}
+                    height={720}
+                    unoptimized
+                    className={`max-h-[75%] w-auto rounded-lg border border-purple-500/50 mb-4 object-contain ${activeConcept.cssFilterClass}`}
                   />
                   <div className="flex gap-4">
                     <button
@@ -883,11 +955,14 @@ export default function PhotoboothLaunchingPage() {
                     key={photo.id}
                     className="relative group bg-black/50 border border-white/10 rounded-xl overflow-hidden shadow-lg hover:border-purple-500 transition duration-300"
                   >
-                    <div className="aspect-[3/4] w-full overflow-hidden">
-                      <img
+                    <div className="relative aspect-[3/4] w-full overflow-hidden">
+                      <NextImage
                         src={photo.url}
                         alt={photo.concept}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        unoptimized
+                        className="object-cover group-hover:scale-105 transition duration-500"
                       />
                     </div>
                     <div className="p-3 text-left bg-black/80">
