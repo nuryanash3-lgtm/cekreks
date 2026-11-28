@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
-  Settings,
   Sparkles,
   Image as ImageIcon,
   Sliders,
@@ -26,13 +26,68 @@ import CameraSetup from "@/components/event/settings/CameraSetup";
 import ScreenEditor from "@/components/event/settings/ScreenEditor";
 
 export default function EventSettingsPage() {
+  const { kode } = useParams<{ kode: string }>();
   const [activeMenu, setActiveMenu] = useState("identity");
-  const [eventName, setEventName] = useState("ARTBOOTH");
-  const [eventDesc, setEventDesc] = useState("Semua bisa mengekspresikan disini");
+  const [eventName, setEventName] = useState("");
+  const [eventDesc, setEventDesc] = useState("");
+  const [isLoadingEvent, setIsLoadingEvent] = useState(() => Boolean(kode));
+  const [eventLoadError, setEventLoadError] = useState<string | null>(() =>
+    kode ? null : "Kode event tidak ditemukan."
+  );
   const [autoReset, setAutoReset] = useState(true);
   const [countdown, setCountdown] = useState("60s (Default)");
   const [previewMode, setPreviewMode] = useState<"portrait" | "landscape">("portrait");
   const [outputRatio, setOutputRatio] = useState("2:3");
+
+  useEffect(() => {
+    if (!kode) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadEventDetails() {
+      try {
+        const res = await fetch(`/api/events/${encodeURIComponent(kode)}`, {
+          cache: "no-store",
+        });
+        const data = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          error?: string;
+          event?: {
+            title?: string;
+            description?: string | null;
+          };
+        } | null;
+
+        if (cancelled) return;
+
+        if (!res.ok || !data?.ok || !data.event) {
+          setEventLoadError(data?.error || "Gagal memuat data event dari database.");
+          return;
+        }
+
+        setEventLoadError(null);
+        setEventName(data.event.title ?? "");
+        setEventDesc(data.event.description ?? "");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Gagal memuat detail event:", error);
+          setEventLoadError("Terjadi kesalahan saat mengambil data event.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingEvent(false);
+        }
+      }
+    }
+
+    loadEventDetails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [kode]);
 
   // State background & overlay (Identity & Output)
   const [selectedBackground, setSelectedBackground] = useState("tpl-hex");
@@ -81,6 +136,7 @@ export default function EventSettingsPage() {
             setEventName={setEventName}
             eventDesc={eventDesc}
             setEventDesc={setEventDesc}
+            isLoading={isLoadingEvent}
             autoReset={autoReset}
             setAutoReset={setAutoReset}
             countdown={countdown}
@@ -194,9 +250,22 @@ export default function EventSettingsPage() {
 
         {/* 2. KONTEN UTAMA TENGAH */}
         <main className="flex-1 flex flex-col bg-[#0b061a] border border-white/10 rounded-2xl p-8 h-full overflow-hidden">
-          <h1 className="text-xl font-bold tracking-wider mb-6 text-white border-b border-white/10 pb-4 shrink-0">
-            {getActiveTitle()}
-          </h1>
+          <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4 shrink-0">
+            <h1 className="text-xl font-bold tracking-wider text-white">
+              {getActiveTitle()}
+            </h1>
+            {kode && (
+              <span className="text-xs font-mono font-bold tracking-wider text-purple-300 bg-[#130d22] border border-white/10 px-3 py-1 rounded-lg">
+                {eventName ? `${eventName} (${kode})` : kode}
+              </span>
+            )}
+          </div>
+
+          {eventLoadError && (
+            <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-300 shrink-0">
+              {eventLoadError}
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto pr-3">
             {activeMenu === "identity" && (
@@ -205,6 +274,7 @@ export default function EventSettingsPage() {
                 setEventName={setEventName}
                 eventDesc={eventDesc}
                 setEventDesc={setEventDesc}
+                isLoading={isLoadingEvent}
                 autoReset={autoReset}
                 setAutoReset={setAutoReset}
                 countdown={countdown}
@@ -283,7 +353,8 @@ export default function EventSettingsPage() {
             outputRatio={outputRatio} // <-- Pastikan LivePreviewOverlay menerima prop rasio ini
             onDownload={(type) => {
               const pattern = filePattern.trim() || '[EventName]_[Nama]';
-              const fileName = pattern.replace('[EventName]', 'CoroAI_Event').replace('[Nama]', 'Guest01');
+              const safeEventName = (eventName.trim() || 'Event').replace(/\s+/g, '_');
+              const fileName = pattern.replace('[EventName]', safeEventName).replace('[Nama]', 'Guest01');
               alert(`Simulasi unduhan: ${fileName}.${type === 'Photo' ? 'jpg' : 'mp4'}`);
             }}
           />

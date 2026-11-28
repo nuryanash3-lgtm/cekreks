@@ -8,6 +8,7 @@ interface EventIdentityProps {
   setEventName: (val: string) => void;
   eventDesc: string;
   setEventDesc: (val: string) => void;
+  isLoading?: boolean;
   autoReset: boolean;
   setAutoReset: (val: boolean) => void;
   countdown: string;
@@ -21,6 +22,7 @@ export default function EventIdentity({
   setEventName,
   eventDesc,
   setEventDesc,
+  isLoading = false,
   autoReset,
   setAutoReset,
   countdown,
@@ -80,8 +82,10 @@ export default function EventIdentity({
           <input
             type="text"
             value={eventName}
+            disabled={isLoading}
+            placeholder={isLoading ? "Memuat nama event..." : "Masukkan nama event"}
             onChange={(e) => setEventName(e.target.value)}
-            className="w-full bg-[#130d22] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#8b35ff] transition-colors"
+            className="w-full bg-[#130d22] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#8b35ff] transition-colors disabled:opacity-60"
           />
         </div>
 
@@ -93,8 +97,10 @@ export default function EventIdentity({
           <input
             type="text"
             value={eventDesc}
+            disabled={isLoading}
+            placeholder={isLoading ? "Memuat deskripsi event..." : "Masukkan deskripsi event"}
             onChange={(e) => setEventDesc(e.target.value)}
-            className="w-full bg-[#130d22] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#8b35ff] transition-colors"
+            className="w-full bg-[#130d22] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#8b35ff] transition-colors disabled:opacity-60"
           />
         </div>
       </div>

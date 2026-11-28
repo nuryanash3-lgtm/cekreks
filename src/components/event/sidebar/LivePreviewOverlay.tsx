@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Monitor, Smartphone, Sparkles, MessageSquare, UserCheck, Download, Video } from "lucide-react";
 
 interface LivePreviewOverlayProps {
@@ -37,8 +37,8 @@ export default function LivePreviewOverlay({
   setPreviewMode,
   selectedBackground = "tpl-hex",
   overlayUrl = "",
-  eventName = "ARTBOOTH",
-  eventDesc = "Semua bisa mengekspresikan disini",
+  eventName = "",
+  eventDesc = "",
   outputRatio = "2:3", // Default rasio
   activeTab = "identity",
   headerText = "YOUR DIGITAL ART",
@@ -62,14 +62,6 @@ export default function LivePreviewOverlay({
   // State khusus interaksi Live Preview Guest Download
   const [showPopup, setShowPopup] = useState<boolean>(true);
   const [photoTab, setPhotoTab] = useState<'ai' | 'orig'>('ai');
-
-  useEffect(() => {
-    if (!welcomeEnabled) {
-      setShowPopup(false);
-    } else {
-      setShowPopup(true);
-    }
-  }, [welcomeEnabled]);
 
   const isNeon = layoutStyle === 'neon';
   const isPortrait = isGuestMode ? orientation === 'portrait' : previewMode === 'portrait';
@@ -138,11 +130,13 @@ export default function LivePreviewOverlay({
 
             <div className="relative z-10 flex flex-col items-center justify-center my-auto space-y-2">
               <h3 className="font-black tracking-widest text-white transition-all duration-300 drop-shadow-md text-sm sm:text-base">
-                {eventName || "ARTBOOTH"}
+                {eventName || "NAMA EVENT"}
               </h3>
-              <p className="text-[10px] text-gray-200 max-w-[180px] drop-shadow">
-                {eventDesc || "Semua bisa mengekspresikan disini"}
-              </p>
+              {eventDesc ? (
+                <p className="text-[10px] text-gray-200 max-w-[180px] drop-shadow">
+                  {eventDesc}
+                </p>
+              ) : null}
               <div className="flex space-x-2 pt-1">
                 <span className="bg-[#8b35ff] text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold shadow">
                   LAUNCH
