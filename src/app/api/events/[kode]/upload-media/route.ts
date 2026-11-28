@@ -1,17 +1,25 @@
+import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { activityLogs, events } from "@/db/schema";
-import type { UploadedEventMediaResponse } from "@/lib/event-settings-types";
+import { activityLogs, events, eventSettings, type Event } from "@/db/schema";
+import {
+  type CustomBackgroundMediaItem,
+  type DeletedEventMediaResponse,
+  DEFAULT_EVENT_IDENTITY_CONFIG,
+  normalizeIdentityConfig,
+  type UploadedEventMediaResponse,
+} from "@/lib/event-settings-types";
 import {
   ALLOWED_IMAGE_MIMES,
   ALLOWED_VIDEO_MIMES,
+  deleteEventMediaFile,
   MAX_IMAGE_BYTES,
   MAX_VIDEO_BYTES,
   saveEventMediaFile,
   StorageReadOnlyError,
 } from "@/lib/media-storage";
-import { getSession } from "@/lib/session";
+import { getSession, type SessionPayload } from "@/lib/session";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,62 +29,67 @@ function isValidUuid(value: string | undefined): value is string {
   return typeof value === "string" && UUID_REGEX.test(value);
 }
 
+async function authorizeEventMediaWrite(
+  kodeParam: string
+): Promise<
+  | { ok: true; session: SessionPayload; event: Event }
+  | { ok: false; status: number; error: string }
+> {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false, status: 401, error: "Unauthorized" };
+  }
+
+  if (session.role !== "admin" && session.role !== "user") {
+    return { ok: false, status: 403, error: "Forbidden" };
+  }
+
+  if (!isValidUuid(session.sub)) {
+    return {
+      ok: false,
+      status: 401,
+      error: "Sesi pengguna tidak valid. Silakan login ulang.",
+    };
+  }
+
+  const normalizedCode = decodeURIComponent(kodeParam).trim().toUpperCase();
+  if (!EVENT_CODE_REGEX.test(normalizedCode)) {
+    return { ok: false, status: 400, error: "Kode event tidak valid." };
+  }
+
+  const [event] = await db
+    .select()
+    .from(events)
+    .where(eq(events.code, normalizedCode))
+    .limit(1);
+
+  if (!event) {
+    return { ok: false, status: 404, error: "Event tidak ditemukan." };
+  }
+
+  const canWrite = session.role === "admin" || event.ownerId === session.sub;
+  if (!canWrite) {
+    return { ok: false, status: 403, error: "Forbidden" };
+  }
+
+  return { ok: true, session, event };
+}
+
 export async function POST(
   req: Request,
   context: { params: Promise<{ kode: string }> }
 ) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json<UploadedEventMediaResponse>(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if (session.role !== "admin" && session.role !== "user") {
-      return NextResponse.json<UploadedEventMediaResponse>(
-        { ok: false, error: "Forbidden" },
-        { status: 403 }
-      );
-    }
-
-    if (!isValidUuid(session.sub)) {
-      return NextResponse.json<UploadedEventMediaResponse>(
-        { ok: false, error: "Sesi pengguna tidak valid. Silakan login ulang." },
-        { status: 401 }
-      );
-    }
-
     const { kode } = await context.params;
-    const normalizedCode = decodeURIComponent(kode).trim().toUpperCase();
-    if (!EVENT_CODE_REGEX.test(normalizedCode)) {
+    const auth = await authorizeEventMediaWrite(kode);
+    if (!auth.ok) {
       return NextResponse.json<UploadedEventMediaResponse>(
-        { ok: false, error: "Kode event tidak valid." },
-        { status: 400 }
+        { ok: false, error: auth.error },
+        { status: auth.status }
       );
     }
 
-    const [event] = await db
-      .select()
-      .from(events)
-      .where(eq(events.code, normalizedCode))
-      .limit(1);
-
-    if (!event) {
-      return NextResponse.json<UploadedEventMediaResponse>(
-        { ok: false, error: "Event tidak ditemukan." },
-        { status: 404 }
-      );
-    }
-
-    const canWrite = session.role === "admin" || event.ownerId === session.sub;
-    if (!canWrite) {
-      return NextResponse.json<UploadedEventMediaResponse>(
-        { ok: false, error: "Forbidden" },
-        { status: 403 }
-      );
-    }
+    const { session, event } = auth;
 
     const formData = await req.formData().catch(() => null);
     if (!formData) {
@@ -120,7 +133,8 @@ export async function POST(
       return NextResponse.json<UploadedEventMediaResponse>(
         {
           ok: false,
-          error: "Tipe file tidak didukung. Gunakan PNG/JPG/WEBP atau MP4/WEBM.",
+          error:
+            "Tipe file tidak didukung. Gunakan PNG/JPG/WEBP atau MP4/WEBM.",
         },
         { status: 400 }
       );
@@ -148,20 +162,67 @@ export async function POST(
       expectedKind,
     });
 
-    await db.insert(activityLogs).values({
-      userId: session.sub,
-      eventId: event.id,
-      actorName: session.name,
-      action: "UPLOAD_EVENT_MEDIA",
-      tokensDelta: 0,
-      status: "success",
-      metadata: {
-        code: event.code,
-        url: saved.url,
-        backgroundType: saved.backgroundType,
-        sizeBytes: saved.sizeBytes,
-        originalName: rawFile.name,
-      },
+    const newItem: CustomBackgroundMediaItem = {
+      id: crypto.randomUUID(),
+      url: saved.url,
+      type: saved.backgroundType,
+      name: rawFile.name || saved.fileName,
+      createdAt: new Date().toISOString(),
+    };
+
+    const customBackgrounds = await db.transaction(async (tx) => {
+      const [existingSettings] = await tx
+        .select()
+        .from(eventSettings)
+        .where(eq(eventSettings.eventId, event.id))
+        .limit(1);
+
+      const currentIdentity = normalizeIdentityConfig(
+        existingSettings?.identityConfig
+      );
+      const nextCustomBackgrounds = [
+        ...currentIdentity.customBackgrounds.filter(
+          (item) => item.url !== newItem.url
+        ),
+        newItem,
+      ];
+      const nextIdentity = {
+        ...currentIdentity,
+        customBackgrounds: nextCustomBackgrounds,
+      };
+
+      await tx
+        .insert(eventSettings)
+        .values({
+          eventId: event.id,
+          identityConfig: nextIdentity as unknown as Record<string, unknown>,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: eventSettings.eventId,
+          set: {
+            identityConfig: nextIdentity as unknown as Record<string, unknown>,
+            updatedAt: new Date(),
+          },
+        });
+
+      await tx.insert(activityLogs).values({
+        userId: session.sub,
+        eventId: event.id,
+        actorName: session.name,
+        action: "UPLOAD_EVENT_MEDIA",
+        tokensDelta: 0,
+        status: "success",
+        metadata: {
+          code: event.code,
+          url: saved.url,
+          backgroundType: saved.backgroundType,
+          sizeBytes: saved.sizeBytes,
+          originalName: rawFile.name,
+        },
+      });
+
+      return nextCustomBackgrounds;
     });
 
     return NextResponse.json<UploadedEventMediaResponse>({
@@ -174,6 +235,8 @@ export async function POST(
         mimeType: saved.mimeType,
         sizeBytes: saved.sizeBytes,
       },
+      item: newItem,
+      customBackgrounds,
     });
   } catch (error) {
     if (error instanceof StorageReadOnlyError) {
@@ -186,6 +249,121 @@ export async function POST(
     return NextResponse.json<UploadedEventMediaResponse>(
       { ok: false, error: "Gagal mengunggah media event." },
       { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ kode: string }> }
+) {
+  try {
+    const { kode } = await context.params;
+    const auth = await authorizeEventMediaWrite(kode);
+    if (!auth.ok) {
+      return NextResponse.json<DeletedEventMediaResponse>(
+        { ok: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
+
+    const { session, event } = auth;
+    const reqUrl = new URL(req.url);
+    const body = (await req.json().catch(() => null)) as { url?: unknown } | null;
+    const targetUrl =
+      typeof body?.url === "string"
+        ? body.url.trim()
+        : (reqUrl.searchParams.get("url") ?? "").trim();
+
+    if (!targetUrl) {
+      return NextResponse.json<DeletedEventMediaResponse>(
+        { ok: false, error: "URL media yang akan dihapus wajib diberikan." },
+        { status: 400 }
+      );
+    }
+
+    await deleteEventMediaFile(event.code, targetUrl);
+
+    const updatedIdentity = await db.transaction(async (tx) => {
+      const [existingSettings] = await tx
+        .select()
+        .from(eventSettings)
+        .where(eq(eventSettings.eventId, event.id))
+        .limit(1);
+
+      const currentIdentity = normalizeIdentityConfig(
+        existingSettings?.identityConfig
+      );
+      const nextCustomBackgrounds = currentIdentity.customBackgrounds.filter(
+        (item) => item.url !== targetUrl
+      );
+      const wasActiveDeleted = currentIdentity.backgroundValue === targetUrl;
+
+      const nextIdentity = {
+        ...currentIdentity,
+        ...(wasActiveDeleted
+          ? {
+              backgroundType: DEFAULT_EVENT_IDENTITY_CONFIG.backgroundType,
+              backgroundValue: DEFAULT_EVENT_IDENTITY_CONFIG.backgroundValue,
+              backgroundName: DEFAULT_EVENT_IDENTITY_CONFIG.backgroundName,
+            }
+          : {}),
+        customBackgrounds: nextCustomBackgrounds,
+      };
+
+      await tx
+        .insert(eventSettings)
+        .values({
+          eventId: event.id,
+          identityConfig: nextIdentity as unknown as Record<string, unknown>,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: eventSettings.eventId,
+          set: {
+            identityConfig: nextIdentity as unknown as Record<string, unknown>,
+            updatedAt: new Date(),
+          },
+        });
+
+      await tx.insert(activityLogs).values({
+        userId: session.sub,
+        eventId: event.id,
+        actorName: session.name,
+        action: "DELETE_EVENT_MEDIA",
+        tokensDelta: 0,
+        status: "success",
+        metadata: {
+          code: event.code,
+          deletedUrl: targetUrl,
+        },
+      });
+
+      return nextIdentity;
+    });
+
+    return NextResponse.json<DeletedEventMediaResponse>({
+      ok: true,
+      deletedUrl: targetUrl,
+      identityConfig: updatedIdentity,
+    });
+  } catch (error) {
+    if (error instanceof StorageReadOnlyError) {
+      return NextResponse.json<DeletedEventMediaResponse>(
+        { ok: false, error: error.message },
+        { status: 503 }
+      );
+    }
+    console.error("DELETE /api/events/[kode]/upload-media error:", error);
+    return NextResponse.json<DeletedEventMediaResponse>(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Gagal menghapus media event.",
+      },
+      { status: 400 }
     );
   }
 }

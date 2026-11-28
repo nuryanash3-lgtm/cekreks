@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -122,4 +122,53 @@ export async function saveEventMediaFile(params: {
     mimeType: params.mimeType.trim().toLowerCase(),
     sizeBytes: params.buffer.byteLength,
   };
+}
+
+const SAFE_MEDIA_FILENAME_REGEX = /^bg-[0-9]+-[a-f0-9]+\.(png|jpg|webp|mp4|webm)$/i;
+
+/**
+ * Deletes an uploaded event media file from local storage safely.
+ */
+export async function deleteEventMediaFile(
+  eventCode: string,
+  mediaUrl: string
+): Promise<void> {
+  const normalizedCode = eventCode.trim().toUpperCase();
+  if (!EVENT_CODE_REGEX.test(normalizedCode)) {
+    throw new Error("Kode event tidak valid.");
+  }
+
+  const expectedPrefix = `/uploads/events/${normalizedCode}/`;
+  if (!mediaUrl.startsWith(expectedPrefix)) {
+    throw new Error("Path file media tidak valid untuk event ini.");
+  }
+
+  const fileName = mediaUrl.slice(expectedPrefix.length);
+  if (!SAFE_MEDIA_FILENAME_REGEX.test(fileName)) {
+    throw new Error("Nama file media tidak valid.");
+  }
+
+  const targetPath = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    "events",
+    normalizedCode,
+    fileName
+  );
+
+  try {
+    await unlink(targetPath);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | null)?.code;
+    if (code === "ENOENT") {
+      return;
+    }
+    if (code === "EROFS" || code === "EACCES" || code === "EPERM") {
+      throw new StorageReadOnlyError(
+        "Storage lokal bersifat read-only pada environment serverless ini."
+      );
+    }
+    throw err;
+  }
 }

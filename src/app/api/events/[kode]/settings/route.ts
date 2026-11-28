@@ -237,6 +237,12 @@ export async function PATCH(
     }
 
     let normalizedIdentity: EventIdentityConfig | null = null;
+    const hasCustomBackgroundsField =
+      body.identityConfig !== undefined &&
+      body.identityConfig !== null &&
+      typeof body.identityConfig === "object" &&
+      "customBackgrounds" in (body.identityConfig as Record<string, unknown>);
+
     if (body.identityConfig !== undefined) {
       normalizedIdentity = normalizeIdentityConfig(body.identityConfig);
       if (
@@ -250,6 +256,19 @@ export async function PATCH(
             ok: false,
             error:
               "URL atau template background tidak valid. Silakan unggah ulang media atau pilih template bawaan.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const hasInvalidCustomItem = normalizedIdentity.customBackgrounds.some(
+        (item) => !isAllowedMediaValue(item.type, item.url)
+      );
+      if (hasInvalidCustomItem) {
+        return NextResponse.json<EventSettingsApiResponse>(
+          {
+            ok: false,
+            error: "Daftar template media custom mengandung URL yang tidak valid.",
           },
           { status: 400 }
         );
@@ -281,17 +300,31 @@ export async function PATCH(
 
       let savedIdentity: EventIdentityConfig;
       if (normalizedIdentity) {
+        let finalIdentity = normalizedIdentity;
+        if (!hasCustomBackgroundsField) {
+          const [existingRow] = await tx
+            .select()
+            .from(eventSettings)
+            .where(eq(eventSettings.eventId, event.id))
+            .limit(1);
+          const existingConfig = normalizeIdentityConfig(existingRow?.identityConfig);
+          finalIdentity = {
+            ...normalizedIdentity,
+            customBackgrounds: existingConfig.customBackgrounds,
+          };
+        }
+
         const [upserted] = await tx
           .insert(eventSettings)
           .values({
             eventId: event.id,
-            identityConfig: normalizedIdentity as unknown as Record<string, unknown>,
+            identityConfig: finalIdentity as unknown as Record<string, unknown>,
             updatedAt: new Date(),
           })
           .onConflictDoUpdate({
             target: eventSettings.eventId,
             set: {
-              identityConfig: normalizedIdentity as unknown as Record<string, unknown>,
+              identityConfig: finalIdentity as unknown as Record<string, unknown>,
               updatedAt: new Date(),
             },
           })

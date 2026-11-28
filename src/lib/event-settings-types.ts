@@ -1,11 +1,20 @@
 export type IdentityBackgroundType = "preset" | "image" | "video";
 
+export interface CustomBackgroundMediaItem {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  name: string;
+  createdAt?: string;
+}
+
 export interface EventIdentityConfig {
   autoReset: boolean;
   autoResetSeconds: number;
   backgroundType: IdentityBackgroundType;
   backgroundValue: string;
   backgroundName: string;
+  customBackgrounds: CustomBackgroundMediaItem[];
 }
 
 export const DEFAULT_EVENT_IDENTITY_CONFIG: EventIdentityConfig = {
@@ -14,6 +23,7 @@ export const DEFAULT_EVENT_IDENTITY_CONFIG: EventIdentityConfig = {
   backgroundType: "preset",
   backgroundValue: "tpl-hex",
   backgroundName: "",
+  customBackgrounds: [],
 };
 
 export interface EventSettingsApiResponse {
@@ -42,11 +52,54 @@ export interface UploadedEventMediaResponse {
     mimeType: string;
     sizeBytes: number;
   };
+  item?: CustomBackgroundMediaItem;
+  customBackgrounds?: CustomBackgroundMediaItem[];
+}
+
+export interface DeletedEventMediaResponse {
+  ok: boolean;
+  error?: string;
+  deletedUrl?: string;
+  identityConfig?: EventIdentityConfig;
+}
+
+function normalizeCustomBackgrounds(raw: unknown): CustomBackgroundMediaItem[] {
+  if (!Array.isArray(raw)) return [];
+  const seenUrls = new Set<string>();
+  const items: CustomBackgroundMediaItem[] = [];
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const item = entry as Record<string, unknown>;
+    const url = typeof item.url === "string" ? item.url.trim() : "";
+    const type =
+      item.type === "image" || item.type === "video" ? item.type : null;
+    if (!url || !type || seenUrls.has(url)) continue;
+
+    seenUrls.add(url);
+    const id =
+      typeof item.id === "string" && item.id.trim()
+        ? item.id.trim()
+        : url;
+    const name =
+      typeof item.name === "string" && item.name.trim()
+        ? item.name.trim()
+        : "Custom Media";
+    const createdAt =
+      typeof item.createdAt === "string" ? item.createdAt : undefined;
+
+    items.push({ id, url, type, name, ...(createdAt ? { createdAt } : {}) });
+  }
+
+  return items;
 }
 
 export function normalizeIdentityConfig(raw: unknown): EventIdentityConfig {
   if (!raw || typeof raw !== "object") {
-    return { ...DEFAULT_EVENT_IDENTITY_CONFIG };
+    return {
+      ...DEFAULT_EVENT_IDENTITY_CONFIG,
+      customBackgrounds: [],
+    };
   }
 
   const obj = raw as Record<string, unknown>;
@@ -76,11 +129,14 @@ export function normalizeIdentityConfig(raw: unknown): EventIdentityConfig {
   const backgroundName =
     typeof obj.backgroundName === "string" ? obj.backgroundName : "";
 
+  const customBackgrounds = normalizeCustomBackgrounds(obj.customBackgrounds);
+
   return {
     autoReset,
     autoResetSeconds,
     backgroundType,
     backgroundValue,
     backgroundName,
+    customBackgrounds,
   };
 }

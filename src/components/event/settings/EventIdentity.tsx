@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import NextImage from "next/image";
-import { Info, Play, Film, ImagePlus, Loader2, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Info, Play, Film, ImagePlus, Loader2, RotateCcw, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import type {
+  CustomBackgroundMediaItem,
+  DeletedEventMediaResponse,
   IdentityBackgroundType,
   UploadedEventMediaResponse,
 } from "@/lib/event-settings-types";
@@ -25,6 +27,8 @@ interface EventIdentityProps {
   setBackgroundValue: (val: string) => void;
   backgroundName: string;
   setBackgroundName: (val: string) => void;
+  customBackgrounds: CustomBackgroundMediaItem[];
+  setCustomBackgrounds: (items: CustomBackgroundMediaItem[]) => void;
 }
 
 export default function EventIdentity({
@@ -44,13 +48,19 @@ export default function EventIdentity({
   setBackgroundValue,
   backgroundName,
   setBackgroundName,
+  customBackgrounds,
+  setCustomBackgrounds,
 }: EventIdentityProps) {
   const numericCountdown = parseInt(countdown) || 60;
   const countdownOptions = ["30s", "45s", "60s", "90s", "120s"];
 
   const [uploadingKind, setUploadingKind] = useState<"image" | "video" | null>(null);
+  const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+
+  const customVideos = customBackgrounds.filter((item) => item.type === "video");
+  const customImages = customBackgrounds.filter((item) => item.type === "image");
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCountdown(`${e.target.value}s`);
@@ -62,6 +72,57 @@ export default function EventIdentity({
     setBackgroundName("");
     setUploadError(null);
     setUploadNotice(null);
+  };
+
+  const handleSelectCustomMedia = (item: CustomBackgroundMediaItem) => {
+    setBackgroundType(item.type);
+    setBackgroundValue(item.url);
+    setBackgroundName(item.name);
+    setUploadError(null);
+    setUploadNotice(null);
+  };
+
+  const handleDeleteCustomMedia = async (item: CustomBackgroundMediaItem) => {
+    if (!eventCode || deletingUrl) return;
+    setUploadError(null);
+    setUploadNotice(null);
+    setDeletingUrl(item.url);
+
+    try {
+      const res = await fetch(
+        `/api/events/${encodeURIComponent(eventCode)}/upload-media`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: item.url }),
+        }
+      );
+
+      const data = (await res.json().catch(() => null)) as DeletedEventMediaResponse | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Gagal menghapus media.");
+      }
+
+      if (data.identityConfig) {
+        setCustomBackgrounds(data.identityConfig.customBackgrounds);
+      } else {
+        setCustomBackgrounds(customBackgrounds.filter((bg) => bg.url !== item.url));
+      }
+
+      if (backgroundValue === item.url) {
+        setBackgroundType("preset");
+        setBackgroundValue("tpl-hex");
+        setBackgroundName("");
+      }
+
+      setUploadNotice(`"${item.name}" berhasil dihapus.`);
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "Gagal menghapus media."
+      );
+    } finally {
+      setDeletingUrl(null);
+    }
   };
 
   const handleMediaUpload = async (
@@ -120,11 +181,20 @@ export default function EventIdentity({
         throw new Error(data?.error || `Gagal mengunggah ${type}.`);
       }
 
+      if (Array.isArray(data.customBackgrounds)) {
+        setCustomBackgrounds(data.customBackgrounds);
+      } else if (data.item) {
+        setCustomBackgrounds([
+          ...customBackgrounds.filter((bg) => bg.url !== data.item!.url),
+          data.item,
+        ]);
+      }
+
       setBackgroundType(data.media.backgroundType);
       setBackgroundValue(data.media.url);
       setBackgroundName(data.media.originalName || data.media.fileName);
       setUploadNotice(
-        `Berhasil diunggah (${data.media.originalName}). Klik Save di kanan atas untuk menyimpan permanen ke event.`
+        `Berhasil ditambahkan ke template (${data.media.originalName}). Klik Save di kanan atas untuk mengaktifkan sebagai background event.`
       );
     } catch (err) {
       setUploadError(
@@ -276,6 +346,59 @@ export default function EventIdentity({
                   </span>
                 </button>
               ))}
+
+              {customVideos.map((item) => {
+                const isSelected =
+                  backgroundType === "video" && backgroundValue === item.url;
+                const isDeleting = deletingUrl === item.url;
+                return (
+                  <div
+                    key={item.id}
+                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all bg-black ${
+                      isSelected
+                        ? "border-purple-500 shadow-[0_0_12px_rgba(139,53,255,0.4)] ring-2 ring-purple-500/50"
+                        : "border-white/10 hover:border-white/30"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomMedia(item)}
+                      title={item.name}
+                      className="w-full h-full block cursor-pointer"
+                    >
+                      <video
+                        src={item.url}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-1 left-1 max-w-[65%] truncate bg-black/75 px-1.5 py-0.5 rounded text-[8px] font-medium text-gray-200">
+                        {item.name}
+                      </span>
+                      <span className="absolute bottom-1 right-1 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-mono text-white flex items-center gap-1">
+                        <Play className="w-2.5 h-2.5 fill-current" /> VID
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={Boolean(deletingUrl)}
+                      onClick={() => void handleDeleteCustomMedia(item)}
+                      title={`Hapus ${item.name}`}
+                      aria-label={`Hapus ${item.name}`}
+                      className="absolute top-1.5 right-1.5 z-10 p-1.5 rounded-md bg-black/75 hover:bg-rose-600 disabled:opacity-50 text-rose-300 hover:text-white border border-white/15 transition cursor-pointer"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -305,6 +428,55 @@ export default function EventIdentity({
                   <div className={`w-full h-full ${item.cls} bg-cover bg-center`} />
                 </button>
               ))}
+
+              {customImages.map((item) => {
+                const isSelected =
+                  backgroundType === "image" && backgroundValue === item.url;
+                const isDeleting = deletingUrl === item.url;
+                return (
+                  <div
+                    key={item.id}
+                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all bg-black ${
+                      isSelected
+                        ? "border-purple-500 shadow-[0_0_12px_rgba(139,53,255,0.4)] ring-2 ring-purple-500/50"
+                        : "border-white/10 hover:border-white/30"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCustomMedia(item)}
+                      title={item.name}
+                      className="w-full h-full relative block cursor-pointer"
+                    >
+                      <NextImage
+                        src={item.url}
+                        alt={item.name}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                      <span className="absolute bottom-1 left-1 max-w-[75%] truncate bg-black/75 px-1.5 py-0.5 rounded text-[8px] font-medium text-gray-200">
+                        {item.name}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={Boolean(deletingUrl)}
+                      onClick={() => void handleDeleteCustomMedia(item)}
+                      title={`Hapus ${item.name}`}
+                      aria-label={`Hapus ${item.name}`}
+                      className="absolute top-1.5 right-1.5 z-10 p-1.5 rounded-md bg-black/75 hover:bg-rose-600 disabled:opacity-50 text-rose-300 hover:text-white border border-white/15 transition cursor-pointer"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

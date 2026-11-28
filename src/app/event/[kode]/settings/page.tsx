@@ -26,6 +26,7 @@ import CameraSetup from "@/components/event/settings/CameraSetup";
 import ScreenEditor from "@/components/event/settings/ScreenEditor";
 import { useRegisterSettingsSave } from "@/components/event/EventSettingsContext";
 import {
+  type CustomBackgroundMediaItem,
   DEFAULT_EVENT_IDENTITY_CONFIG,
   type EventSettingsApiResponse,
   type IdentityBackgroundType,
@@ -54,6 +55,9 @@ export default function EventSettingsPage() {
   );
   const [backgroundName, setBackgroundName] = useState<string>(
     DEFAULT_EVENT_IDENTITY_CONFIG.backgroundName
+  );
+  const [customBackgrounds, setCustomBackgrounds] = useState<CustomBackgroundMediaItem[]>(
+    DEFAULT_EVENT_IDENTITY_CONFIG.customBackgrounds
   );
   const [overlayUrl, setOverlayUrl] = useState("");
   const [overlayInfo, setOverlayInfo] = useState({ name: "custom_editor_frame.png", dimensions: "1205x1795 px" });
@@ -90,6 +94,7 @@ export default function EventSettingsPage() {
           setBackgroundType(cfg.backgroundType);
           setBackgroundValue(cfg.backgroundValue);
           setBackgroundName(cfg.backgroundName);
+          setCustomBackgrounds(cfg.customBackgrounds);
         }
       } catch (error) {
         if (!cancelled) {
@@ -135,6 +140,7 @@ export default function EventSettingsPage() {
           backgroundType,
           backgroundValue,
           backgroundName,
+          customBackgrounds,
         },
       }),
     });
@@ -156,6 +162,7 @@ export default function EventSettingsPage() {
       setBackgroundType(saved.backgroundType);
       setBackgroundValue(saved.backgroundValue);
       setBackgroundName(saved.backgroundName);
+      setCustomBackgrounds(saved.customBackgrounds);
     }
 
     return { ok: true, message: "Pengaturan Event Identity & UI disimpan!" };
@@ -168,6 +175,7 @@ export default function EventSettingsPage() {
     backgroundType,
     backgroundValue,
     backgroundName,
+    customBackgrounds,
   ]);
 
   useRegisterSettingsSave(handleSaveSettings);
@@ -298,6 +306,8 @@ export default function EventSettingsPage() {
                 setBackgroundValue={setBackgroundValue}
                 backgroundName={backgroundName}
                 setBackgroundName={setBackgroundName}
+                customBackgrounds={customBackgrounds}
+                setCustomBackgrounds={setCustomBackgrounds}
               />
             )}
             {activeMenu === "output" && (
