@@ -1,30 +1,77 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Copy, Play, Settings, Image as ImageIcon, Download, 
-  Database, Trash2, Coins, Key, CheckCircle2, X, LogOut, AlertTriangle 
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Plus, Copy, Play, Image as ImageIcon, Download, Settings,
+  Database, Trash2, Coins, Key, CheckCircle2, X, LogOut, AlertTriangle,
+  User2
 } from 'lucide-react';
-import akunData from '@/data/daftarAkun.json';
+
+interface EventApiRecord {
+  id: string;
+  ownerId: string;
+  code: string;
+  title: string;
+  description: string | null;
+  eventDate: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  companyName: string | null;
+  city: string | null;
+  country: string | null;
+  planName: string;
+  tokenBalance: number;
+  unlimitedUntil: string | null;
+}
 
 interface EventItem {
+  id: string;
   code: string;
   title: string;
   date: string;
   description: string;
-  isPublic?: boolean;
+  isPublic: boolean;
+}
+
+function formatEventDate(eventDate: string | null, createdAt: string): string {
+  const source = eventDate || createdAt;
+  const parsed = new Date(source);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date().toLocaleDateString('en-US');
+  }
+  return parsed.toLocaleDateString('en-US');
+}
+
+function mapApiEventToItem(ev: EventApiRecord): EventItem {
+  return {
+    id: ev.id,
+    code: ev.code,
+    title: ev.title,
+    date: formatEventDate(ev.eventDate, ev.createdAt),
+    description: ev.description || 'Semua bisa mengekspresikan disini',
+    isPublic: ev.isPublic,
+  };
 }
 
 export default function EventDashboardPage() {
-  // 1. Inisialisasi awal dengan data statis dari JSON (agar server & client render pertama sama persis)
-  const [events, setEvents] = useState<EventItem[]>(() => {
-    return akunData.events.map((ev) => ({ ...ev, isPublic: ev.isPublic ?? false }));
-  });
-
-  const [isMounted, setIsMounted] = useState(false); // <--- State penanda client sudah mount
-  const [kredit] = useState(198);
+  const router = useRouter();
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [kredit, setKredit] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // State untuk Modal & Form Buat Event Baru
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
@@ -36,33 +83,93 @@ export default function EventDashboardPage() {
   const [pendingEventCode, setPendingEventCode] = useState<string | null>(null);
   const [isCheckedAgreement, setIsCheckedAgreement] = useState(false);
 
-  // 2. Ambil data dari localStorage setelah komponen sukses dimuat di browser (Client-side only)
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  }, []);
+
   useEffect(() => {
-    setIsMounted(true);
-    if (typeof window !== 'undefined') {
-      const savedEvents = localStorage.getItem('cekreks_events_state');
-      if (savedEvents) {
-        try {
-          setEvents(JSON.parse(savedEvents));
-        } catch (e) {
-          console.error("Gagal memparsing data event dari localStorage", e);
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/events', { cache: 'no-store' });
+        if (res.status === 401) {
+          router.push('/?login=required');
+          return;
+        }
+
+        const data = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          error?: string;
+          user?: UserProfile;
+          events?: EventApiRecord[];
+        } | null;
+
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || 'Gagal memuat daftar event.');
+        }
+
+        if (cancelled) return;
+
+        setEvents(Array.isArray(data.events) ? data.events.map(mapApiEventToItem) : []);
+        if (data.user) {
+          setUserProfile(data.user);
+          setKredit(typeof data.user.tokenBalance === 'number' ? data.user.tokenBalance : 0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Gagal memuat data event dari server', error);
+          showToast(error instanceof Error ? error.message : 'Gagal memuat data event.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
         }
       }
     }
-  }, []);
 
-  // Simpan perubahan ke localStorage setiap kali state events berubah (setelah mounted)
-  useEffect(() => {
-    if (isMounted && typeof window !== 'undefined') {
-      localStorage.setItem('cekreks_events_state', JSON.stringify(events));
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, showToast]);
+
+  const handleAccountSave = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+    const oldPassword = String(formData.get('oldPassword') ?? '');
+    const newPassword = String(formData.get('newPassword') ?? '');
+    const confirmPassword = String(formData.get('confirmPassword') ?? '');
+
+    if ((newPassword || confirmPassword) && !oldPassword) {
+      showToast('Masukkan password lama untuk mengubah password.');
+      return;
     }
-  }, [events, isMounted]);
 
-  const showToast = (message: string) => {
-    setToastMessage(message);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
+    if (newPassword !== confirmPassword) {
+      showToast('Konfirmasi password baru tidak cocok.');
+      return;
+    }
+
+    showToast('Form siap. Penyimpanan perubahan perlu dihubungkan ke backend.');
   };
 
   const handleCopyText = (text: string, label: string) => {
@@ -70,92 +177,304 @@ export default function EventDashboardPage() {
     showToast(`${label} berhasil disalin!`);
   };
 
-  const handleToggleClick = (ev: EventItem) => {
+  const handleToggleClick = async (ev: EventItem) => {
     if (!ev.isPublic) {
       setPendingEventCode(ev.code);
       setIsCheckedAgreement(false);
       setIsPublicModalOpen(true);
-    } else {
-      setEvents(prev =>
-        prev.map(item => {
-          if (item.code === ev.code) {
-            showToast(`Event ${item.title} diset menjadi Private`);
-            return { ...item, isPublic: false };
-          }
-          return item;
-        })
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(ev.code)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        event?: EventApiRecord;
+      } | null;
+
+      if (!res.ok || !data?.ok || !data.event) {
+        throw new Error(data?.error || 'Gagal mengubah status event.');
+      }
+
+      const updated = mapApiEventToItem(data.event);
+      setEvents((prev) =>
+        prev.map((item) => (item.code === ev.code ? updated : item))
       );
+      showToast(`Event ${updated.title} diset menjadi Private`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal mengubah status event.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const confirmEnablePublic = () => {
-    if (!pendingEventCode) return;
+  const confirmEnablePublic = async () => {
+    if (!pendingEventCode || isSubmitting) return;
+    setIsSubmitting(true);
 
-    const newRandomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(pendingEventCode)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: true, regenerateCode: true }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        event?: EventApiRecord;
+      } | null;
 
-    setEvents(prev =>
-      prev.map(item => {
-        if (item.code === pendingEventCode) {
-          showToast(`Event ${item.title} diset menjadi Public dengan kode baru!`);
-          return { 
-            ...item, 
-            isPublic: true, 
-            code: newRandomCode 
-          };
-        }
-        return item;
-      })
-    );
+      if (!res.ok || !data?.ok || !data.event) {
+        throw new Error(data?.error || 'Gagal mengaktifkan Event Publik.');
+      }
 
-    setIsPublicModalOpen(false);
-    setPendingEventCode(null);
+      const updated = mapApiEventToItem(data.event);
+      setEvents((prev) =>
+        prev.map((item) => (item.code === pendingEventCode ? updated : item))
+      );
+      showToast(`Event ${updated.title} diset menjadi Public dengan kode baru!`);
+      setIsPublicModalOpen(false);
+      setPendingEventCode(null);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal mengaktifkan Event Publik.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteEvent = (code: string, title: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus event "${title}"?`)) {
-      setEvents(prev => prev.filter(ev => ev.code !== code));
+  const handleDeleteEvent = async (code: string, title: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus event "${title}"?`)) {
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(code)}`, {
+        method: 'DELETE',
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || 'Gagal menghapus event.');
+      }
+
+      setEvents((prev) => prev.filter((ev) => ev.code !== code));
       showToast(`Event ${title} berhasil dihapus!`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal menghapus event.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCreateEvent = (e: React.FormEvent) => {
+  const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEventTitle.trim()) {
       showToast('Nama event tidak boleh kosong!');
       return;
     }
 
-    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const currentDate = new Date().toLocaleDateString('en-US');
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    const newEvent: EventItem = {
-      code: randomCode,
-      title: newEventTitle.toUpperCase(),
-      date: currentDate,
-      description: newEventDesc || 'Semua bisa mengekspresikan disini',
-      isPublic: false,
-    };
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newEventTitle.trim().toUpperCase(),
+          description: newEventDesc.trim() || 'Semua bisa mengekspresikan disini',
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        event?: EventApiRecord;
+      } | null;
 
-    setEvents([newEvent, ...events]);
-    setIsModalOpen(false);
-    setNewEventTitle('');
-    setNewEventDesc('');
-    showToast(`Event ${newEvent.title} berhasil dibuat sebagai Private!`);
+      if (!res.ok || !data?.ok || !data.event) {
+        throw new Error(data?.error || 'Gagal membuat event baru.');
+      }
+
+      const created = mapApiEventToItem(data.event);
+      setEvents((prev) => [created, ...prev]);
+      setIsModalOpen(false);
+      setNewEventTitle('');
+      setNewEventDesc('');
+      showToast(`Event ${created.title} berhasil dibuat sebagai Private!`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Gagal membuat event baru.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Mencegah render interaktif sebelum client siap (opsional, tapi aman untuk menghindari flash)
-  if (!isMounted) {
-    return null; 
+  if (isLoading) {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-[#07050d] text-white p-6 md:p-10 font-sans relative">
-      
+
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#13111c] border border-purple-500/50 text-white px-4 py-3 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.3)] animate-fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {isAccountModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setIsAccountModalOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-modal-title"
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/15 bg-[#101010] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Tutup pengaturan akun"
+              onClick={() => setIsAccountModalOpen(false)}
+              className="absolute right-5 top-5 text-gray-400 transition hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-6">
+              <h2 id="account-modal-title" className="text-xl flex items-center font-extrabold">
+                <User2 className="mr-2 text-fuchsia-500" />
+                Account Settings
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                Update your account details and password. Email and phone number
+                cannot be changed.
+              </p>
+            </div>
+
+            <form onSubmit={handleAccountSave} className="space-y-4">
+              <div>
+                <label htmlFor="account-name" className="mb-1.5 block text-xs font-bold">
+                  Name
+                </label>
+                <input
+                  id="account-name"
+                  name="name"
+                  defaultValue={userProfile?.name ?? 'User'}
+                  className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="company-name" className="mb-1.5 block text-xs font-bold">
+                  Company Name
+                </label>
+                <input
+                  id="company-name"
+                  name="companyName"
+                  defaultValue={userProfile?.companyName ?? 'CekreksID'}
+                  className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="account-city" className="mb-1.5 block text-xs font-bold">
+                    Kota / Kabupaten
+                  </label>
+                  <input
+                    id="account-city"
+                    name="city"
+                    defaultValue={userProfile?.city ?? 'Bandung'}
+                    className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="account-country" className="mb-1.5 block text-xs font-bold">
+                    Country
+                  </label>
+                  <input
+                    id="account-country"
+                    name="country"
+                    defaultValue={userProfile?.country ?? 'Indonesia'}
+                    className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="mb-4 text-sm font-bold">Change Password</h3>
+
+                <label htmlFor="old-password" className="mb-1.5 block text-xs font-bold">
+                  Old Password
+                </label>
+                <input
+                  id="old-password"
+                  name="oldPassword"
+                  type="password"
+                  placeholder="Required if changing password"
+                  autoComplete="current-password"
+                  className="mb-4 w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                />
+
+                <label htmlFor="new-password" className="mb-1.5 block text-xs font-bold">
+                  New Password (Optional)
+                </label>
+                <input
+                  id="new-password"
+                  name="newPassword"
+                  type="password"
+                  placeholder="Leave blank to keep current password"
+                  autoComplete="new-password"
+                  className="mb-4 w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                />
+
+                <label htmlFor="confirm-password" className="mb-1.5 block text-xs font-bold">
+                  Confirm New Password
+                </label>
+                <input
+                  id="confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  className="w-full rounded-xl border border-white/20 bg-black/50 px-3 py-3 text-sm outline-none focus:border-fuchsia-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAccountModalOpen(false)}
+                  className="rounded-full bg-zinc-800 px-5 py-2.5 text-xs font-bold hover:bg-zinc-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-fuchsia-600 px-5 py-2.5 text-xs font-bold hover:bg-fuchsia-500"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
       )}
 
@@ -188,7 +507,7 @@ export default function EventDashboardPage() {
               </ul>
 
               <div className="mt-4 p-3 rounded-xl bg-[#130d22] border border-white/10 flex items-start gap-3 cursor-pointer" onClick={() => setIsCheckedAgreement(!isCheckedAgreement)}>
-                <input 
+                <input
                   type="checkbox"
                   checked={isCheckedAgreement}
                   onChange={(e) => setIsCheckedAgreement(e.target.checked)}
@@ -201,22 +520,21 @@ export default function EventDashboardPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
-              <button 
+              <button
                 type="button"
                 onClick={() => { setIsPublicModalOpen(false); setPendingEventCode(null); }}
                 className="px-5 py-2 text-xs font-bold uppercase bg-[#130d22] border border-white/10 hover:border-white/30 rounded-xl text-gray-300 transition cursor-pointer"
               >
                 Batal
               </button>
-              <button 
+              <button
                 type="button"
-                disabled={!isCheckedAgreement}
+                disabled={!isCheckedAgreement || isSubmitting}
                 onClick={confirmEnablePublic}
-                className={`px-5 py-2 text-xs font-bold uppercase rounded-xl transition ${
-                  isCheckedAgreement 
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 cursor-pointer' 
-                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50'
-                }`}
+                className={`px-5 py-2 text-xs font-bold uppercase rounded-xl transition ${isCheckedAgreement && !isSubmitting
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 cursor-pointer'
+                  : 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50'
+                  }`}
               >
                 Aktifkan Event Publik
               </button>
@@ -231,7 +549,7 @@ export default function EventDashboardPage() {
           <div className="bg-[#0d0b14] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.2)] relative">
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
               <h3 className="text-lg font-extrabold tracking-wider text-white">Buat Event Baru</h3>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-gray-400 hover:text-white transition cursor-pointer"
               >
@@ -244,7 +562,7 @@ export default function EventDashboardPage() {
                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
                   Nama Event
                 </label>
-                <input 
+                <input
                   type="text"
                   placeholder="Contoh: WEDDING PARTY"
                   value={newEventTitle}
@@ -258,7 +576,7 @@ export default function EventDashboardPage() {
                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
                   Deskripsi Event
                 </label>
-                <textarea 
+                <textarea
                   placeholder="Tulis deskripsi singkat..."
                   value={newEventDesc}
                   onChange={(e) => setNewEventDesc(e.target.value)}
@@ -268,16 +586,17 @@ export default function EventDashboardPage() {
               </div>
 
               <div className="flex items-center justify-end gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   className="px-5 py-2.5 text-xs font-bold uppercase bg-[#13111c] border border-white/10 hover:border-white/30 rounded-xl text-gray-300 transition cursor-pointer"
                 >
                   Batal
                 </button>
-                <button 
+                <button
                   type="submit"
-                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-xl shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer disabled:opacity-50"
                 >
                   Simpan Event
                 </button>
@@ -294,19 +613,19 @@ export default function EventDashboardPage() {
             DASHBOARD
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Selamat datang kembali, <span className="text-purple-400 font-semibold">User</span>
+            Selamat datang kembali, <span className="text-purple-400 font-semibold">{userProfile?.name ?? 'User'}</span>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button 
+          <button
             onClick={() => showToast('Membuka Info Harga')}
             className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-amber-500/50 text-amber-400 rounded-full hover:border-amber-500 hover:scale-105 transition shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer"
           >
             Info Harga
           </button>
-          
-          <button 
+
+          <button
             onClick={() => showToast('Membuka Tutorial')}
             className="px-4 py-2 text-xs font-bold uppercase bg-[#13111c] border border-purple-500/30 text-purple-300 rounded-full hover:border-purple-500 hover:scale-105 transition cursor-pointer"
           >
@@ -314,13 +633,13 @@ export default function EventDashboardPage() {
           </button>
 
           <div className="flex items-center bg-[#13111c] border border-white/10 rounded-full p-1">
-            <button 
+            <button
               onClick={() => { setLanguage('EN'); showToast('Bahasa diubah ke English'); }}
               className={`px-3 py-1 text-[11px] font-bold rounded-full transition cursor-pointer ${language === 'EN' ? 'bg-white text-black' : 'text-gray-400'}`}
             >
               EN
             </button>
-            <button 
+            <button
               onClick={() => { setLanguage('ID'); showToast('Bahasa diubah ke Indonesia'); }}
               className={`px-3 py-1 text-[11px] font-bold rounded-full transition cursor-pointer ${language === 'ID' ? 'bg-white text-black' : 'text-gray-400'}`}
             >
@@ -333,15 +652,20 @@ export default function EventDashboardPage() {
             <span className="text-xs font-bold">{kredit} Kredit</span>
           </div>
 
-          <button 
-            onClick={() => showToast('Membuka Pengaturan Akun')}
+          <button
+            onClick={() => setIsAccountModalOpen(true)}
             className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-purple-500 text-gray-300 hover:text-white hover:scale-105 transition cursor-pointer"
           >
-            <Settings className="w-4 h-4" />
+            <User2 className="w-4 h-4" />
           </button>
 
-          <button 
-            onClick={() => showToast('Berhasil Keluar')}
+          <button
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              router.push('/');
+              router.refresh();
+            }}
+            aria-label="Logout"
             className="w-9 h-9 flex items-center justify-center bg-[#13111c] border border-white/10 rounded-full hover:border-rose-500 text-gray-300 hover:text-rose-400 hover:scale-105 transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
@@ -358,7 +682,7 @@ export default function EventDashboardPage() {
         <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
           <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">Paket Saat Ini</span>
           <div className="text-3xl font-black mt-3 bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent italic tracking-wider">
-            Free
+            {userProfile?.planName ?? 'Free'}
           </div>
         </div>
         <div className="p-6 bg-[#0d0b14] border border-white/10 rounded-2xl shadow-lg flex flex-col justify-between">
@@ -368,7 +692,7 @@ export default function EventDashboardPage() {
           </div>
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
             <span className="text-[11px] text-purple-400 cursor-pointer hover:underline">Info Harga Credit</span>
-            <button 
+            <button
               onClick={() => showToast('Mengarahkan ke halaman Beli Kredit')}
               className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
             >
@@ -382,7 +706,7 @@ export default function EventDashboardPage() {
             <div className="text-2xl font-mono font-bold mt-3 text-white tracking-widest">00:00:00</div>
           </div>
           <div className="mt-4 pt-3 border-t border-white/5 flex justify-end">
-            <button 
+            <button
               onClick={() => showToast('Mengarahkan ke pembelian Unlimited')}
               className="px-4 py-1.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] text-white rounded-lg shadow-[0_0_15px_rgba(217,70,239,0.4)] hover:scale-105 transition transform cursor-pointer"
             >
@@ -395,7 +719,7 @@ export default function EventDashboardPage() {
       {/* SECTION: EVENT ANDA */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold tracking-wider">Event Anda</h2>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="px-5 py-2.5 text-xs font-bold uppercase bg-gradient-to-r from-[#ff4d6d] via-[#d946ef] to-[#8b5cf6] rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] flex items-center gap-2 hover:scale-105 transition transform cursor-pointer"
         >
@@ -406,7 +730,7 @@ export default function EventDashboardPage() {
       {/* GRID EVENT */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* CARD BUAT EVENT BARU */}
-        <div 
+        <div
           onClick={() => setIsModalOpen(true)}
           className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[420px] bg-[#0d0b14]/50 cursor-pointer group transition hover:scale-[1.01]"
         >
@@ -419,7 +743,7 @@ export default function EventDashboardPage() {
 
         {/* LIST EVENT CARDS */}
         {events.map((ev) => (
-          <div key={ev.code} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-2xl hover:border-purple-500/30 transition">
+          <div key={ev.id} className="bg-[#0d0b14] border border-white/10 rounded-2xl p-6 relative flex flex-col justify-between shadow-2xl hover:border-purple-500/30 transition">
             <div>
               {/* Header Card */}
               <div className="flex items-center justify-between mb-1">
@@ -434,15 +758,14 @@ export default function EventDashboardPage() {
                 <span className="text-[11px] font-bold tracking-wider text-gray-300 uppercase">Public Event</span>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={() => handleToggleClick(ev)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
-                    ev.isPublic ? 'bg-gradient-to-r from-pink-500 to-purple-600' : 'bg-gray-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${ev.isPublic ? 'bg-gradient-to-r from-pink-500 to-purple-600' : 'bg-gray-700'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      ev.isPublic ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${ev.isPublic ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
@@ -460,8 +783,8 @@ export default function EventDashboardPage() {
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <button 
-                    onClick={() => handleCopyText(`https://cekreks.id/event/${ev.code}`, 'URL Event')}
+                  <button
+                    onClick={() => handleCopyText(typeof window !== 'undefined' ? `${window.location.origin}/event/${ev.code}` : `https://cekreks.id/event/${ev.code}`, 'URL Event')}
                     className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#13111c] border border-white/5 rounded-xl text-xs text-gray-300 hover:text-white transition cursor-pointer"
                   >
                     <Copy className="w-3.5 h-3.5 text-purple-400" /> Copy URL
@@ -477,16 +800,16 @@ export default function EventDashboardPage() {
 
               {/* MULAI & PENGATURAN ROW */}
               <div className="grid grid-cols-2 gap-2 mb-2">
-                <a 
+                <a
                   href={`/event/${ev.code}`}
                   className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white"
                 >
                   <Play className="w-3.5 h-3.5 fill-current text-white" /> Mulai
                 </a>
-                <button 
+                <button
                   onClick={() => {
                     showToast(`Membuka pengaturan: ${ev.title}`);
-                    window.location.href = `/event/${ev.code}/settings`
+                    router.push(`/event/${ev.code}/settings`);
                   }}
                   className="flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white cursor-pointer"
                 >
@@ -495,7 +818,7 @@ export default function EventDashboardPage() {
               </div>
 
               {/* GALERI BUTTON */}
-              <button 
+              <button
                 onClick={() => showToast(`Membuka galeri event ${ev.title}`)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-xs font-bold uppercase transition text-white mb-3 cursor-pointer"
               >
@@ -505,7 +828,7 @@ export default function EventDashboardPage() {
 
             {/* BOTTOM ACTIONS (ZIP, DRIVE, DELETE) */}
             <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/5">
-              <button 
+              <button
                 onClick={() => showToast(`Mengunduh ZIP untuk ${ev.title}...`)}
                 className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-blue-500/20 hover:border-blue-500/50 rounded-xl text-[10px] text-blue-400 font-medium text-center transition cursor-pointer"
                 title="Unduh Semua Data (ZIP)"
@@ -513,7 +836,7 @@ export default function EventDashboardPage() {
                 <Download className="w-4 h-4 mb-1" />
                 <span className="leading-tight">Unduh Semua Data (ZIP)</span>
               </button>
-              <button 
+              <button
                 onClick={() => showToast(`Mencadangkan ${ev.title} ke Google Drive...`)}
                 className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-white/10 hover:border-purple-500/50 rounded-xl text-[10px] text-gray-300 font-medium text-center transition cursor-pointer"
                 title="Cadangkan ke Google Drive"
@@ -521,7 +844,7 @@ export default function EventDashboardPage() {
                 <Database className="w-4 h-4 mb-1 text-purple-400" />
                 <span className="leading-tight">Cadangkan ke Google Drive</span>
               </button>
-              <button 
+              <button
                 onClick={() => handleDeleteEvent(ev.code, ev.title)}
                 className="flex flex-col items-center justify-center p-2 bg-[#13111c] border border-rose-500/20 hover:border-rose-500/50 rounded-xl text-[10px] text-rose-400 font-medium text-center transition cursor-pointer"
                 title="Hapus"

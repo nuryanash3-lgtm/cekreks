@@ -1,19 +1,34 @@
-import React from 'react';
-import NavbarEvent from '@/components/event/NavbarEvent';
+import React, { Suspense } from "react";
+import { requireSession } from "@/lib/auth-guard";
 
-export default function SettingLayout({
+async function EventCodeAuthGuard({
+  params,
   children,
 }: {
+  params: Promise<{ kode: string }>;
+  children: React.ReactNode;
+}) {
+  const { kode } = await params;
+  await requireSession(["admin", "user", "event_guest"], { eventCode: kode });
+  return <>{children}</>;
+}
+
+export default function EventCodeLayout({
+  params,
+  children,
+}: {
+  params: Promise<{ kode: string }>;
   children: React.ReactNode;
 }) {
   return (
-    <>
-      {/* Navbar khusus halaman publik */}
-      <NavbarEvent />
-
-      {/* Konten halaman publik (Beranda & Layanan) */}
-      <main className="flex-1">{children}</main>
-
-    </>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#07050d] text-gray-400 flex items-center justify-center text-sm">
+          Memverifikasi akses sesi event...
+        </div>
+      }
+    >
+      <EventCodeAuthGuard params={params}>{children}</EventCodeAuthGuard>
+    </Suspense>
   );
 }

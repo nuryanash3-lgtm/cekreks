@@ -23,7 +23,7 @@ import type {
   OrientationOption,
   AlignmentType,
   ShapeType,
-} from './overlay-editor.types';
+} from '../../../../types/overlay-editor.types';
 
 /* ============================================================================
    LEFT SIDEBAR (ADD & LAYOUT)

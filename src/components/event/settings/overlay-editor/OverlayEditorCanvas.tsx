@@ -5,8 +5,8 @@ import { ChevronLeft, ChevronRight, Layers, Layers2, Camera } from 'lucide-react
 import type {
   CanvasElement,
   ResizeHandlePosition,
-} from './overlay-editor.types';
-import { SAMPLE_BOOTH_PHOTOS } from './useOverlayEditor';
+} from '../../../../types/overlay-editor.types';
+import { SAMPLE_BOOTH_PHOTOS } from '../../../../types/useOverlayEditor';
 
 export interface OverlayEditorCanvasProps {
   elements: CanvasElement[];

@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Monitor, Smartphone, Sparkles, MessageSquare, UserCheck, Download, Video } from "lucide-react";
+import { useState } from "react";
+import NextImage from "next/image";
+import { Monitor, Sparkles, MessageSquare, UserCheck, Download, Video } from "lucide-react";
+import type { IdentityBackgroundType } from "@/lib/event-settings-types";
 
 interface LivePreviewOverlayProps {
   // Properti untuk Booth Identity & Output
   previewMode: "portrait" | "landscape";
-  setPreviewMode: (mode: "portrait" | "landscape") => void;
+  setPreviewMode?: (mode: "portrait" | "landscape") => void;
   selectedBackground?: string;
+  backgroundType?: IdentityBackgroundType;
+  backgroundValue?: string;
   overlayUrl?: string;
   eventName?: string;
   eventDesc?: string;
@@ -34,11 +38,12 @@ interface LivePreviewOverlayProps {
 
 export default function LivePreviewOverlay({
   previewMode,
-  setPreviewMode,
   selectedBackground = "tpl-hex",
+  backgroundType = "preset",
+  backgroundValue,
   overlayUrl = "",
-  eventName = "ARTBOOTH",
-  eventDesc = "Semua bisa mengekspresikan disini",
+  eventName = "",
+  eventDesc = "",
   outputRatio = "2:3", // Default rasio
   activeTab = "identity",
   headerText = "YOUR DIGITAL ART",
@@ -54,22 +59,15 @@ export default function LivePreviewOverlay({
   dlVideoText = "DOWNLOAD VIDEO",
   layoutStyle = "neon",
   orientation = "portrait",
-  onOrientationChange,
   onDownload,
 }: LivePreviewOverlayProps) {
+  const effectiveBgValue = backgroundValue ?? selectedBackground;
+  const isPresetBg = backgroundType === "preset";
   const isGuestMode = activeTab === "guest";
 
   // State khusus interaksi Live Preview Guest Download
   const [showPopup, setShowPopup] = useState<boolean>(true);
   const [photoTab, setPhotoTab] = useState<'ai' | 'orig'>('ai');
-
-  useEffect(() => {
-    if (!welcomeEnabled) {
-      setShowPopup(false);
-    } else {
-      setShowPopup(true);
-    }
-  }, [welcomeEnabled]);
 
   const isNeon = layoutStyle === 'neon';
   const isPortrait = isGuestMode ? orientation === 'portrait' : previewMode === 'portrait';
@@ -125,24 +123,50 @@ export default function LivePreviewOverlay({
         {/* --- TAMPILAN 1: IDENTITY & OUTPUT MODE --- */}
         {!isGuestMode && (
           <div
-            className={`border border-white/10 rounded-xl p-4 flex flex-col items-center justify-between text-center relative transition-all duration-300 ease-in-out bg-cover bg-center ${selectedBackground} ${getDynamicPreviewStyle()}`}
+            className={`border border-white/10 rounded-xl p-4 flex flex-col items-center justify-between text-center relative overflow-hidden transition-all duration-300 ease-in-out bg-cover bg-center ${
+              isPresetBg ? effectiveBgValue : "bg-black"
+            } ${getDynamicPreviewStyle()}`}
           >
+            {backgroundType === "image" && effectiveBgValue && (
+              <NextImage
+                src={effectiveBgValue}
+                alt="Custom Event Background"
+                fill
+                unoptimized
+                className="object-cover rounded-xl z-0 pointer-events-none"
+              />
+            )}
+            {backgroundType === "video" && effectiveBgValue && (
+              <video
+                key={effectiveBgValue}
+                src={effectiveBgValue}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover rounded-xl z-0 pointer-events-none"
+              />
+            )}
             {overlayUrl && (
-              <img
+              <NextImage
                 src={overlayUrl}
                 alt="Custom Overlay Frame"
-                className="absolute inset-0 w-full h-full object-fill pointer-events-none z-20 rounded-xl"
+                fill
+                unoptimized
+                className="object-fill pointer-events-none z-20 rounded-xl"
               />
             )}
             <div className="absolute inset-0 bg-black/40 rounded-xl z-0 pointer-events-none" />
 
             <div className="relative z-10 flex flex-col items-center justify-center my-auto space-y-2">
               <h3 className="font-black tracking-widest text-white transition-all duration-300 drop-shadow-md text-sm sm:text-base">
-                {eventName || "ARTBOOTH"}
+                {eventName || "NAMA EVENT"}
               </h3>
-              <p className="text-[10px] text-gray-200 max-w-[180px] drop-shadow">
-                {eventDesc || "Semua bisa mengekspresikan disini"}
-              </p>
+              {eventDesc ? (
+                <p className="text-[10px] text-gray-200 max-w-[180px] drop-shadow">
+                  {eventDesc}
+                </p>
+              ) : null}
               <div className="flex space-x-2 pt-1">
                 <span className="bg-[#8b35ff] text-white px-2.5 py-0.5 rounded-md text-[9px] font-bold shadow">
                   LAUNCH

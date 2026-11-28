@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   CalendarDays,
@@ -22,6 +22,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const menuItems = [
     { name: 'Manajemen Pengguna', href: '/admin', icon: LayoutDashboard },
@@ -32,9 +33,11 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     { name: 'Pengaturan Sistem AI', href: '/admin/aisettings', icon: Settings },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Apakah Anda yakin ingin keluar dari sesi admin?')) {
-      alert('Berhasil logout!');
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/');
+      router.refresh();
     }
   };
 
