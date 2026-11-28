@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { activityLogs, events, eventSettings } from "@/db/schema";
 import {
+  DEFAULT_VIDEO_TEMPLATE_URLS,
   type EventIdentityConfig,
   type EventSettingsApiResponse,
   normalizeIdentityConfig,
@@ -27,6 +28,9 @@ function isAllowedMediaValue(
 ): boolean {
   if (type === "preset") {
     return PRESET_CLASS_REGEX.test(value);
+  }
+  if (type === "video" && DEFAULT_VIDEO_TEMPLATE_URLS.has(value)) {
+    return true;
   }
   if (value.startsWith("/uploads/events/") && !value.includes("..")) {
     return true;

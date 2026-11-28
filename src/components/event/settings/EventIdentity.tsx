@@ -3,11 +3,15 @@
 import { useState } from "react";
 import NextImage from "next/image";
 import { Info, Play, Film, ImagePlus, Loader2, RotateCcw, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
-import type {
-  CustomBackgroundMediaItem,
-  DeletedEventMediaResponse,
-  IdentityBackgroundType,
-  UploadedEventMediaResponse,
+import {
+  type CustomBackgroundMediaItem,
+  DEFAULT_EVENT_IDENTITY_CONFIG,
+  DEFAULT_VIDEO_TEMPLATE_URLS,
+  DEFAULT_VIDEO_TEMPLATES,
+  type DefaultVideoTemplate,
+  type DeletedEventMediaResponse,
+  type IdentityBackgroundType,
+  type UploadedEventMediaResponse,
 } from "@/lib/event-settings-types";
 
 interface EventIdentityProps {
@@ -61,6 +65,8 @@ export default function EventIdentity({
 
   const customVideos = customBackgrounds.filter((item) => item.type === "video");
   const customImages = customBackgrounds.filter((item) => item.type === "image");
+  const isCustomUploadedActive =
+    backgroundType !== "preset" && !DEFAULT_VIDEO_TEMPLATE_URLS.has(backgroundValue);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCountdown(`${e.target.value}s`);
@@ -70,6 +76,22 @@ export default function EventIdentity({
     setBackgroundType("preset");
     setBackgroundValue(tplClass);
     setBackgroundName("");
+    setUploadError(null);
+    setUploadNotice(null);
+  };
+
+  const handleSelectDefaultVideo = (tpl: DefaultVideoTemplate) => {
+    setBackgroundType("video");
+    setBackgroundValue(tpl.url);
+    setBackgroundName(tpl.label);
+    setUploadError(null);
+    setUploadNotice(null);
+  };
+
+  const handleResetToDefault = () => {
+    setBackgroundType(DEFAULT_EVENT_IDENTITY_CONFIG.backgroundType);
+    setBackgroundValue(DEFAULT_EVENT_IDENTITY_CONFIG.backgroundValue);
+    setBackgroundName(DEFAULT_EVENT_IDENTITY_CONFIG.backgroundName);
     setUploadError(null);
     setUploadNotice(null);
   };
@@ -110,9 +132,9 @@ export default function EventIdentity({
       }
 
       if (backgroundValue === item.url) {
-        setBackgroundType("preset");
-        setBackgroundValue("tpl-hex");
-        setBackgroundName("");
+        setBackgroundType(DEFAULT_EVENT_IDENTITY_CONFIG.backgroundType);
+        setBackgroundValue(DEFAULT_EVENT_IDENTITY_CONFIG.backgroundValue);
+        setBackgroundName(DEFAULT_EVENT_IDENTITY_CONFIG.backgroundName);
       }
 
       setUploadNotice(`"${item.name}" berhasil dihapus.`);
@@ -324,28 +346,39 @@ export default function EventIdentity({
               <span className="text-[10px] text-purple-400 font-mono">LOOP MP4</span>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
-              {[
-                { id: "tpl-hex", cls: "tpl-hex" },
-                { id: "tpl-cybercar", cls: "tpl-cybercar" },
-                { id: "tpl-shards-dark", cls: "tpl-shards-dark" },
-                { id: "tpl-waterfall", cls: "tpl-waterfall" },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(item.cls)}
-                  className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                    backgroundType === "preset" && backgroundValue === item.cls
-                      ? "border-purple-500 shadow-[0_0_12px_rgba(139,53,255,0.4)] ring-2 ring-purple-500/50"
-                      : "border-white/10 hover:border-white/30"
-                  }`}
-                >
-                  <div className={`w-full h-full ${item.cls} bg-cover bg-center`} />
-                  <span className="absolute bottom-1 right-1 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-mono text-white flex items-center gap-1">
-                    <Play className="w-2.5 h-2.5 fill-current" /> VID
-                  </span>
-                </button>
-              ))}
+              {DEFAULT_VIDEO_TEMPLATES.map((tpl) => {
+                const isSelected =
+                  backgroundType === "video" && backgroundValue === tpl.url;
+                return (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    onClick={() => handleSelectDefaultVideo(tpl)}
+                    title={tpl.label}
+                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer bg-black ${
+                      isSelected
+                        ? "border-purple-500 shadow-[0_0_12px_rgba(139,53,255,0.4)] ring-2 ring-purple-500/50"
+                        : "border-white/10 hover:border-white/30"
+                    }`}
+                  >
+                    <video
+                      src={tpl.url}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-1 left-1 bg-black/75 px-1.5 py-0.5 rounded text-[8px] font-medium text-gray-200">
+                      {tpl.label}
+                    </span>
+                    <span className="absolute bottom-1 right-1 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-mono text-white flex items-center gap-1">
+                      <Play className="w-2.5 h-2.5 fill-current" /> VID
+                    </span>
+                  </button>
+                );
+              })}
 
               {customVideos.map((item) => {
                 const isSelected =
@@ -485,14 +518,14 @@ export default function EventIdentity({
         <div className="space-y-3 pt-1">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
             <span>Custom Background Media:</span>
-            {backgroundType !== "preset" && backgroundValue ? (
+            {isCustomUploadedActive && backgroundValue ? (
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono text-emerald-300">
                   Active ({backgroundType.toUpperCase()}): {backgroundName || "Custom Media"}
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleSelectTemplate("tpl-hex")}
+                  onClick={handleResetToDefault}
                   className="inline-flex items-center gap-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 text-[10px] font-semibold text-gray-300 hover:text-white transition cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -501,12 +534,12 @@ export default function EventIdentity({
               </div>
             ) : (
               <span className="text-[11px] font-mono text-purple-300">
-                Template: {backgroundValue || "tpl-hex"}
+                Template: {backgroundName || backgroundValue || DEFAULT_EVENT_IDENTITY_CONFIG.backgroundName}
               </span>
             )}
           </div>
 
-          {backgroundType !== "preset" && backgroundValue && (
+          {isCustomUploadedActive && backgroundValue && (
             <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#09090b] border border-purple-500/30">
               <div className="relative w-24 aspect-video rounded-lg overflow-hidden border border-white/10 bg-black shrink-0">
                 {backgroundType === "image" ? (

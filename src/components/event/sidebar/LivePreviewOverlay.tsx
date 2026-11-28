@@ -138,6 +138,7 @@ export default function LivePreviewOverlay({
             )}
             {backgroundType === "video" && effectiveBgValue && (
               <video
+                key={effectiveBgValue}
                 src={effectiveBgValue}
                 autoPlay
                 loop

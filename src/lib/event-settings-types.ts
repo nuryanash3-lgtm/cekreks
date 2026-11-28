@@ -1,5 +1,26 @@
 export type IdentityBackgroundType = "preset" | "image" | "video";
 
+export interface DefaultVideoTemplate {
+  id: string;
+  label: string;
+  url: string;
+}
+
+export const DEFAULT_VIDEO_TEMPLATES: DefaultVideoTemplate[] = [
+  { id: "tpl-video-1", label: "Video 1", url: "/templates/videos/video1.mp4" },
+  { id: "tpl-video-2", label: "Video 2", url: "/templates/videos/video2.mp4" },
+  { id: "tpl-video-3", label: "Video 3", url: "/templates/videos/video3.mp4" },
+  { id: "tpl-video-4", label: "Video 4", url: "/templates/videos/video4.mp4" },
+  { id: "tpl-video-5", label: "Video 5", url: "/templates/videos/video5.mp4" },
+  { id: "tpl-video-6", label: "Video 6", url: "/templates/videos/video6.mp4" },
+  { id: "tpl-video-7", label: "Video 7", url: "/templates/videos/video7.mp4" },
+  { id: "tpl-video-8", label: "Video 8", url: "/templates/videos/video8.mp4" },
+];
+
+export const DEFAULT_VIDEO_TEMPLATE_URLS = new Set(
+  DEFAULT_VIDEO_TEMPLATES.map((tpl) => tpl.url)
+);
+
 export interface CustomBackgroundMediaItem {
   id: string;
   url: string;
@@ -20,9 +41,9 @@ export interface EventIdentityConfig {
 export const DEFAULT_EVENT_IDENTITY_CONFIG: EventIdentityConfig = {
   autoReset: true,
   autoResetSeconds: 60,
-  backgroundType: "preset",
-  backgroundValue: "tpl-hex",
-  backgroundName: "",
+  backgroundType: "video",
+  backgroundValue: "/templates/videos/video1.mp4",
+  backgroundName: "Video 1",
   customBackgrounds: [],
 };
 
