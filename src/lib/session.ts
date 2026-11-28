@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 export type SessionRole = "admin" | "user" | "event_guest";
 
@@ -132,6 +133,7 @@ export async function clearSessionCookie(): Promise<void> {
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
+  await connection();
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   return verifySessionToken(token);
