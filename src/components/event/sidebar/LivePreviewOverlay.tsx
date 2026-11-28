@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Monitor, Smartphone, Sparkles, MessageSquare, UserCheck, Download, Video } from "lucide-react";
+import NextImage from "next/image";
+import { Monitor, Sparkles, MessageSquare, UserCheck, Download, Video } from "lucide-react";
+import type { IdentityBackgroundType } from "@/lib/event-settings-types";
 
 interface LivePreviewOverlayProps {
   // Properti untuk Booth Identity & Output
   previewMode: "portrait" | "landscape";
-  setPreviewMode: (mode: "portrait" | "landscape") => void;
+  setPreviewMode?: (mode: "portrait" | "landscape") => void;
   selectedBackground?: string;
+  backgroundType?: IdentityBackgroundType;
+  backgroundValue?: string;
   overlayUrl?: string;
   eventName?: string;
   eventDesc?: string;
@@ -34,8 +38,9 @@ interface LivePreviewOverlayProps {
 
 export default function LivePreviewOverlay({
   previewMode,
-  setPreviewMode,
   selectedBackground = "tpl-hex",
+  backgroundType = "preset",
+  backgroundValue,
   overlayUrl = "",
   eventName = "",
   eventDesc = "",
@@ -54,9 +59,10 @@ export default function LivePreviewOverlay({
   dlVideoText = "DOWNLOAD VIDEO",
   layoutStyle = "neon",
   orientation = "portrait",
-  onOrientationChange,
   onDownload,
 }: LivePreviewOverlayProps) {
+  const effectiveBgValue = backgroundValue ?? selectedBackground;
+  const isPresetBg = backgroundType === "preset";
   const isGuestMode = activeTab === "guest";
 
   // State khusus interaksi Live Preview Guest Download
@@ -117,13 +123,36 @@ export default function LivePreviewOverlay({
         {/* --- TAMPILAN 1: IDENTITY & OUTPUT MODE --- */}
         {!isGuestMode && (
           <div
-            className={`border border-white/10 rounded-xl p-4 flex flex-col items-center justify-between text-center relative transition-all duration-300 ease-in-out bg-cover bg-center ${selectedBackground} ${getDynamicPreviewStyle()}`}
+            className={`border border-white/10 rounded-xl p-4 flex flex-col items-center justify-between text-center relative overflow-hidden transition-all duration-300 ease-in-out bg-cover bg-center ${
+              isPresetBg ? effectiveBgValue : "bg-black"
+            } ${getDynamicPreviewStyle()}`}
           >
+            {backgroundType === "image" && effectiveBgValue && (
+              <NextImage
+                src={effectiveBgValue}
+                alt="Custom Event Background"
+                fill
+                unoptimized
+                className="object-cover rounded-xl z-0 pointer-events-none"
+              />
+            )}
+            {backgroundType === "video" && effectiveBgValue && (
+              <video
+                src={effectiveBgValue}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover rounded-xl z-0 pointer-events-none"
+              />
+            )}
             {overlayUrl && (
-              <img
+              <NextImage
                 src={overlayUrl}
                 alt="Custom Overlay Frame"
-                className="absolute inset-0 w-full h-full object-fill pointer-events-none z-20 rounded-xl"
+                fill
+                unoptimized
+                className="object-fill pointer-events-none z-20 rounded-xl"
               />
             )}
             <div className="absolute inset-0 bg-black/40 rounded-xl z-0 pointer-events-none" />

@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Clock, Lightbulb, Play, Film, ImagePlus } from "lucide-react";
+import NextImage from "next/image";
+import { Info, Play, Film, ImagePlus, Loader2, RotateCcw, CheckCircle2, AlertCircle } from "lucide-react";
+import type {
+  IdentityBackgroundType,
+  UploadedEventMediaResponse,
+} from "@/lib/event-settings-types";
 
 interface EventIdentityProps {
+  eventCode?: string;
   eventName: string;
   setEventName: (val: string) => void;
   eventDesc: string;
@@ -13,11 +19,16 @@ interface EventIdentityProps {
   setAutoReset: (val: boolean) => void;
   countdown: string;
   setCountdown: (val: string) => void;
-  selectedBackground?: string;
-  setSelectedBackground?: (val: string) => void;
+  backgroundType: IdentityBackgroundType;
+  setBackgroundType: (val: IdentityBackgroundType) => void;
+  backgroundValue: string;
+  setBackgroundValue: (val: string) => void;
+  backgroundName: string;
+  setBackgroundName: (val: string) => void;
 }
 
 export default function EventIdentity({
+  eventCode = "",
   eventName,
   setEventName,
   eventDesc,
@@ -27,43 +38,100 @@ export default function EventIdentity({
   setAutoReset,
   countdown,
   setCountdown,
-  selectedBackground = "tpl-hex",
-  setSelectedBackground,
+  backgroundType,
+  setBackgroundType,
+  backgroundValue,
+  setBackgroundValue,
+  backgroundName,
+  setBackgroundName,
 }: EventIdentityProps) {
   const numericCountdown = parseInt(countdown) || 60;
   const countdownOptions = ["30s", "45s", "60s", "90s", "120s"];
 
-  const [localBg, setLocalBg] = useState(selectedBackground);
-  const [customFileStatus, setCustomFileStatus] = useState("");
+  const [uploadingKind, setUploadingKind] = useState<"image" | "video" | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCountdown(`${e.target.value}s`);
   };
 
   const handleSelectTemplate = (tplClass: string) => {
-    setLocalBg(tplClass);
-    if (setSelectedBackground) {
-      setSelectedBackground(tplClass);
-    }
-    setCustomFileStatus("");
+    setBackgroundType("preset");
+    setBackgroundValue(tplClass);
+    setBackgroundName("");
+    setUploadError(null);
+    setUploadNotice(null);
   };
 
-  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "video" | "image", maxMB: number) => {
+  const handleMediaUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "video" | "image",
+    maxMB: number
+  ) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
-    const maxBytes = maxMB * 1024 * 1024;
-    if (file.size > maxBytes) {
-      alert(`Ukuran maksimal untuk ${type} adalah ${maxMB}MB.`);
-      e.target.value = "";
+    setUploadError(null);
+    setUploadNotice(null);
+
+    if (!eventCode) {
+      setUploadError("Kode event tidak ditemukan. Muat ulang halaman.");
       return;
     }
 
-    const fileUrl = URL.createObjectURL(file);
-    setCustomFileStatus(`Active: ${file.name}`);
-    setLocalBg(fileUrl);
-    if (setSelectedBackground) {
-      setSelectedBackground(fileUrl);
+    const allowedImageTypes = ["image/png", "image/jpeg", "image/webp"];
+    const allowedVideoTypes = ["video/mp4", "video/webm"];
+    const mime = file.type.trim().toLowerCase();
+
+    if (type === "image" && !allowedImageTypes.includes(mime)) {
+      setUploadError("Format gambar harus PNG, JPG/JPEG, atau WEBP.");
+      return;
+    }
+
+    if (type === "video" && !allowedVideoTypes.includes(mime)) {
+      setUploadError("Format video harus MP4 atau WEBM.");
+      return;
+    }
+
+    const maxBytes = maxMB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadError(`Ukuran maksimal untuk ${type} adalah ${maxMB}MB.`);
+      return;
+    }
+
+    setUploadingKind(type);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kind", type);
+
+      const res = await fetch(
+        `/api/events/${encodeURIComponent(eventCode)}/upload-media`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = (await res.json().catch(() => null)) as UploadedEventMediaResponse | null;
+      if (!res.ok || !data?.ok || !data.media) {
+        throw new Error(data?.error || `Gagal mengunggah ${type}.`);
+      }
+
+      setBackgroundType(data.media.backgroundType);
+      setBackgroundValue(data.media.url);
+      setBackgroundName(data.media.originalName || data.media.fileName);
+      setUploadNotice(
+        `Berhasil diunggah (${data.media.originalName}). Klik Save di kanan atas untuk menyimpan permanen ke event.`
+      );
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : `Gagal mengunggah ${type}.`
+      );
+    } finally {
+      setUploadingKind(null);
     }
   };
 
@@ -197,7 +265,7 @@ export default function EventIdentity({
                   type="button"
                   onClick={() => handleSelectTemplate(item.cls)}
                   className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                    localBg === item.cls
+                    backgroundType === "preset" && backgroundValue === item.cls
                       ? "border-purple-500 shadow-[0_0_12px_rgba(139,53,255,0.4)] ring-2 ring-purple-500/50"
                       : "border-white/10 hover:border-white/30"
                   }`}
@@ -229,7 +297,7 @@ export default function EventIdentity({
                   type="button"
                   onClick={() => handleSelectTemplate(item.cls)}
                   className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                    localBg === item.cls
+                    backgroundType === "preset" && backgroundValue === item.cls
                       ? "border-purple-500 shadow-[0_0_12px_rgba(139,53,255,0.4)] ring-2 ring-purple-500/50"
                       : "border-white/10 hover:border-white/30"
                   }`}
@@ -242,43 +310,122 @@ export default function EventIdentity({
         </div>
 
         {/* Custom Upload Buttons */}
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>Custom Background Media (UI Only):</span>
-            <span className="text-[11px] font-mono text-purple-400">{customFileStatus}</span>
+        <div className="space-y-3 pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+            <span>Custom Background Media:</span>
+            {backgroundType !== "preset" && backgroundValue ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-emerald-300">
+                  Active ({backgroundType.toUpperCase()}): {backgroundName || "Custom Media"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTemplate("tpl-hex")}
+                  className="inline-flex items-center gap-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 text-[10px] font-semibold text-gray-300 hover:text-white transition cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset
+                </button>
+              </div>
+            ) : (
+              <span className="text-[11px] font-mono text-purple-300">
+                Template: {backgroundValue || "tpl-hex"}
+              </span>
+            )}
           </div>
+
+          {backgroundType !== "preset" && backgroundValue && (
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#09090b] border border-purple-500/30">
+              <div className="relative w-24 aspect-video rounded-lg overflow-hidden border border-white/10 bg-black shrink-0">
+                {backgroundType === "image" ? (
+                  <NextImage
+                    src={backgroundValue}
+                    alt={backgroundName || "Custom background preview"}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <video
+                    src={backgroundValue}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-white truncate">
+                  {backgroundName || backgroundValue}
+                </p>
+                <p className="text-[11px] text-gray-400 truncate">
+                  Tersimpan di: {backgroundValue}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="flex items-start gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-300">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          {uploadNotice && (
+            <div className="flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{uploadNotice}</span>
+            </div>
+          )}
 
           <input
             type="file"
             id="upload-video-input"
             accept="video/mp4,video/webm"
             className="hidden"
-            onChange={(e) => handleMediaUpload(e, "video", 8)}
+            onChange={(e) => void handleMediaUpload(e, "video", 8)}
           />
           <input
             type="file"
             id="upload-image-input"
             accept="image/png,image/jpeg,image/webp"
             className="hidden"
-            onChange={(e) => handleMediaUpload(e, "image", 2)}
+            onChange={(e) => void handleMediaUpload(e, "image", 2)}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
+              disabled={uploadingKind !== null || isLoading}
               onClick={() => document.getElementById("upload-video-input")?.click()}
-              className="py-3 px-4 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-white/10 hover:border-purple-500/60 text-white font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="py-3 px-4 rounded-xl bg-[#18181b] hover:bg-zinc-800 disabled:opacity-60 border border-white/10 hover:border-purple-500/60 text-white font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              <Film className="w-4 h-4 text-purple-400" />
-              <span>UPLOAD VIDEO (8MB)</span>
+              {uploadingKind === "video" ? (
+                <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+              ) : (
+                <Film className="w-4 h-4 text-purple-400" />
+              )}
+              <span>
+                {uploadingKind === "video" ? "UPLOADING VIDEO..." : "UPLOAD VIDEO (8MB)"}
+              </span>
             </button>
             <button
               type="button"
+              disabled={uploadingKind !== null || isLoading}
               onClick={() => document.getElementById("upload-image-input")?.click()}
-              className="py-3 px-4 rounded-xl bg-[#18181b] hover:bg-zinc-800 border border-white/10 hover:border-purple-500/60 text-white font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="py-3 px-4 rounded-xl bg-[#18181b] hover:bg-zinc-800 disabled:opacity-60 border border-white/10 hover:border-purple-500/60 text-white font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              <ImagePlus className="w-4 h-4 text-purple-400" />
-              <span>UPLOAD IMAGE (2MB)</span>
+              {uploadingKind === "image" ? (
+                <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+              ) : (
+                <ImagePlus className="w-4 h-4 text-purple-400" />
+              )}
+              <span>
+                {uploadingKind === "image" ? "UPLOADING IMAGE..." : "UPLOAD IMAGE (2MB)"}
+              </span>
             </button>
           </div>
         </div>

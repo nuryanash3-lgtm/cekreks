@@ -1,14 +1,15 @@
 import React, { Suspense } from 'react';
 import NavbarEvent from '@/components/event/NavbarEvent';
+import { EventSettingsSaveProvider } from '@/components/event/EventSettingsContext';
 import { requireSession } from '@/lib/auth-guard';
 
 async function SettingsAuthGuard({ children }: { children: React.ReactNode }) {
   await requireSession(['admin', 'user']);
   return (
-    <>
+    <EventSettingsSaveProvider>
       <NavbarEvent />
       <main className="flex-1">{children}</main>
-    </>
+    </EventSettingsSaveProvider>
   );
 }
 
